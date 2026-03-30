@@ -29,6 +29,11 @@ output/
 figures/
 results/
 
+# Large generated data
+data/interim/
+data/processed/
+models/
+
 # OS
 .DS_Store
 Thumbs.db
