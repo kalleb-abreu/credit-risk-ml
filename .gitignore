@@ -30,8 +30,7 @@ figures/
 results/
 
 # Large generated data
-data/interim/
-data/processed/
+data/
 models/
 
 # OS
