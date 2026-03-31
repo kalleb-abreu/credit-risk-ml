@@ -13,3 +13,15 @@ message("\n=== IEEE-CIS Fraud Detection (train_transaction) ===")
 ieee <- load_csv("data/raw/ieee-cis-fraud-detection/train_transaction.csv")
 message("Rows: ", nrow(ieee), " | Cols: ", ncol(ieee))
 print(class_distribution(ieee, "isFraud"))
+
+# --- UCI Australian Credit Approval ------------------------------------------
+message("\n=== UCI Australian Credit Approval ===")
+australian <- load_australian("data/raw/uci-australian-credit-approval/australian.dat")
+message("Rows: ", nrow(australian), " | Cols: ", ncol(australian))
+print(class_distribution(australian, "Class"))
+
+# --- UCI South German Credit -------------------------------------------------
+message("\n=== UCI South German Credit ===")
+south_german <- load_south_german("data/raw/uci-south-german-credit/SouthGermanCredit.asc")
+message("Rows: ", nrow(south_german), " | Cols: ", ncol(south_german))
+print(class_distribution(south_german, "kredit"))
