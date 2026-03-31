@@ -29,12 +29,12 @@ The core of your experimental design: compare resampling techniques across **thr
 - [x] Download and verify class distribution.
 - [ ] Perform EDA: summary stats, missing values, feature types, correlations.
 
-**Moderately imbalanced dataset (minority class: 10–20%)**
-- [ ] Identify a moderately imbalanced dataset.
-- [ ] Download and verify class distribution.
+**Moderately imbalanced dataset (minority class: 10–25%)**
+- [x] Identify a moderately imbalanced dataset.
+- [x] Download and verify class distribution.
 - [ ] Perform EDA: summary stats, missing values, feature types, correlations.
 
-**Near-balanced dataset (minority class: 20–50%)**
+**Near-balanced dataset (minority class: 25–50%)**
 - [x] Identify a near-balanced dataset.
 - [x] Download and verify class distribution.
 - [ ] Perform EDA: summary stats, missing values, feature types, correlations.

@@ -25,3 +25,15 @@ message("\n=== UCI South German Credit ===")
 south_german <- load_south_german("data/raw/uci-south-german-credit/SouthGermanCredit.asc")
 message("Rows: ", nrow(south_german), " | Cols: ", ncol(south_german))
 print(class_distribution(south_german, "kredit"))
+
+# --- UCI Portuguese Bank Marketing -------------------------------------------
+message("\n=== UCI Portuguese Bank Marketing ===")
+bank <- load_bank_marketing("data/raw/uci-portuguese-bank-marketing/bank-additional/bank-additional/bank-additional-full.csv")
+message("Rows: ", nrow(bank), " | Cols: ", ncol(bank))
+print(class_distribution(bank, "y"))
+
+# --- UCI Taiwan Credit Card Default ------------------------------------------
+message("\n=== UCI Taiwan Credit Card Default ===")
+taiwan <- load_taiwan("data/raw/uci-taiwan-credit-card/default of credit card clients.xls")
+message("Rows: ", nrow(taiwan), " | Cols: ", ncol(taiwan))
+print(class_distribution(taiwan, "default payment next month"))

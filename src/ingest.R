@@ -1,5 +1,6 @@
 library(here)
 library(readr)
+library(readxl)
 
 #' Load a CSV dataset and return a tibble
 load_csv <- function(path) {
@@ -22,6 +23,18 @@ load_australian <- function(path) {
 #' Space-separated with a header row in German variable names
 load_south_german <- function(path) {
   read_table(here::here(path), show_col_types = FALSE)
+}
+
+#' Load the UCI Taiwan Credit Card Default dataset
+#' XLS file; first row is a secondary header that must be skipped
+load_taiwan <- function(path) {
+  read_excel(here::here(path), skip = 1)
+}
+
+#' Load the UCI Portuguese Bank Marketing dataset
+#' Semicolon-separated with header; uses the full bank-additional dataset
+load_bank_marketing <- function(path) {
+  read_delim(here::here(path), delim = ";", show_col_types = FALSE)
 }
 
 #' Compute class distribution for a binary target column
