@@ -47,7 +47,7 @@ The core of your experimental design: compare resampling techniques across **thr
 - [x] Document the chosen structure: raw vs. processed data, model saving, script naming conventions.
 
 **Cross-cutting data tasks**
-- [ ] Document all three datasets in a comparison table: source, size, features, target variable, imbalance ratio.
+- [x] Document all three datasets in a comparison table: source, size, features, target variable, imbalance ratio.
 - [ ] Standardize preprocessing across datasets (missing value handling, encoding, scaling).
 
 ---
