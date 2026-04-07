@@ -1,5 +1,63 @@
 library(here)
 library(ggplot2)
+library(dplyr)
+library(arrow)
+
+#' Compute structural EDA summary across all six datasets
+#'
+#' Reads the full data (train + calibration + test combined) from interim
+#' Parquet files and returns one summary row per dataset covering feature
+#' types, missing values, and numeric scale range.
+eda_summary <- function() {
+  ids <- c("ulb", "ieee", "bank_marketing", "taiwan", "south_german", "australian")
+  names_full <- c(
+    "ULB Credit Card Fraud",
+    "IEEE-CIS Fraud Detection",
+    "UCI Portuguese Bank Marketing",
+    "UCI Taiwan Credit Card Default",
+    "UCI South German Credit",
+    "UCI Australian Credit Approval"
+  )
+
+  rows <- lapply(seq_along(ids), function(i) {
+    df <- bind_rows(lapply(c("train", "calibration", "test"), function(pt) {
+      read_parquet(here::here("data/interim", paste0(ids[i], "_", pt, ".parquet")))
+    }))
+
+    feat_cols  <- setdiff(names(df), "y")
+    is_num     <- sapply(df[feat_cols], is.numeric)
+    n_num      <- sum(is_num)
+    n_cat      <- sum(!is_num)
+
+    miss_per_col   <- colSums(is.na(df[feat_cols]))
+    n_miss_cols    <- sum(miss_per_col > 0)
+    pct_rows_miss  <- round(mean(rowSums(is.na(df[feat_cols])) > 0) * 100, 1)
+
+    if (n_num > 0) {
+      ranges    <- sapply(df[feat_cols[is_num]], function(x) diff(range(x, na.rm = TRUE)))
+      range_min <- round(min(ranges), 1)
+      range_max <- round(max(ranges), 1)
+    } else {
+      range_min <- NA_real_
+      range_max <- NA_real_
+    }
+
+    data.frame(
+      dataset           = names_full[i],
+      n_rows            = nrow(df),
+      n_features        = length(feat_cols),
+      n_numeric         = n_num,
+      n_categorical     = n_cat,
+      n_missing_cols    = n_miss_cols,
+      pct_rows_missing  = pct_rows_miss,
+      numeric_range_min = range_min,
+      numeric_range_max = range_max,
+      stringsAsFactors  = FALSE
+    )
+  })
+
+  bind_rows(rows)
+}
 
 #' Plot dataset positions along the imbalance spectrum (0–50%)
 plot_imbalance_spectrum <- function() {

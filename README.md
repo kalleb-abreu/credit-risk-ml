@@ -17,7 +17,7 @@ The experiment covers three levels of class imbalance:
 | Dataset | Scenario | Rows | Features | Target variable | Minority % | Imbalance ratio | Source | Path |
 |---|---|---|---|---|---|---|---|---|
 | ULB Credit Card Fraud | Heavily imbalanced | 284,807 | 30 | `Class` (0/1) | 0.17% | 1:578 | https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud | `data/raw/ulb-credit-card-fraud-detection/` |
-| IEEE-CIS Fraud Detection | Heavily imbalanced | 590,540 | 393 | `isFraud` (0/1) | 3.50% | 1:28 | https://www.kaggle.com/competitions/ieee-fraud-detection/data | `data/raw/ieee-cis-fraud-detection/` |
+| IEEE-CIS Fraud Detection | Heavily imbalanced | 590,540 | 432 | `isFraud` (0/1) | 3.50% | 1:28 | https://www.kaggle.com/competitions/ieee-fraud-detection/data | `data/raw/ieee-cis-fraud-detection/` |
 | UCI Portuguese Bank Marketing | Moderately imbalanced | 41,188 | 20 | `y` (no/yes) | 11.3% | 1:7.9 | https://archive.ics.uci.edu/dataset/222/bank+marketing | `data/raw/uci-portuguese-bank-marketing/` |
 | UCI Taiwan Credit Card Default | Moderately imbalanced | 30,000 | 24 | `default payment next month` (0/1) | 22.1% | 1:3.5 | https://archive.ics.uci.edu/dataset/350/default+of+credit+card+clients | `data/raw/uci-taiwan-credit-card/` |
 | UCI South German Credit | Near-balanced | 1,000 | 20 | `kredit` (0=bad/1=good) | 30.0% | 1:2.3 | https://archive.ics.uci.edu/dataset/573/south+german+credit | `data/raw/uci-south-german-credit/` |
@@ -81,7 +81,22 @@ Operates on the standardized interim files. The goal is to characterize each dat
 
 Functions live in `src/eda.R`.
 
-**Figures** are written to `figures/`.
+**Figures** are written to `figures/`. The structural summary table is written to `output/eda_summary.csv`.
+
+#### Structural summary
+
+| Dataset | Rows | Features | Numeric | Categorical | Missing cols | % rows with missing | Numeric range |
+|---|---|---|---|---|---|---|---|
+| ULB Credit Card Fraud | 284,807 | 30 | 30 | 0 | 0 | 0% | 6.1 – 172,792 |
+| IEEE-CIS Fraud Detection | 590,540 | 432 | 401 | 31 | 414 | 100% | 1.0 – 15,724,731 |
+| UCI Portuguese Bank Marketing | 41,188 | 20 | 10 | 10 | 0 | 0% | 2.6 – 4,918 |
+| UCI Taiwan Credit Card Default | 30,000 | 23 | 23 | 0 | 0 | 0% | 1.0 – 1,821,353 |
+| UCI South German Credit | 1,000 | 20 | 20 | 0 | 0 | 0% | 1.0 – 18,174 |
+| UCI Australian Credit Approval | 690 | 14 | 14 | 0 | 0 | 0% | 1.0 – 100,000 |
+
+> IEEE-CIS: 100% of rows have at least one missing value because identity records exist for only a subset of transactions (left join). 414 of 432 feature columns are affected. Missing values are expected and will be handled by imputation in preprocessing.
+
+**Figures:**
 
 | Figure | Description |
 |---|---|
