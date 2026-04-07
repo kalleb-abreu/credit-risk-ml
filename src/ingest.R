@@ -37,6 +37,16 @@ load_bank_marketing <- function(path) {
   read_delim(here::here(path), delim = ";", show_col_types = FALSE)
 }
 
+#' Load the IEEE-CIS Fraud Detection dataset
+#' Joins train_transaction and train_identity on TransactionID (left join);
+#' drops TransactionID afterwards. The test files have no labels and are ignored.
+load_ieee <- function(base_path) {
+  transactions <- load_csv(file.path(base_path, "train_transaction.csv"))
+  identity     <- load_csv(file.path(base_path, "train_identity.csv"))
+  dplyr::left_join(transactions, identity, by = "TransactionID") |>
+    dplyr::select(-TransactionID)
+}
+
 #' Compute class distribution for a binary target column
 class_distribution <- function(df, target_col) {
   target_col <- rlang::sym(target_col)
