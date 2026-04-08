@@ -18,10 +18,10 @@ The experiment covers three levels of class imbalance:
 |---|---|---|---|---|---|---|---|---|
 | ULB Credit Card Fraud | Heavily imbalanced | 284,807 | 30 | `Class` (0/1) | 0.17% | 1:578 | https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud | `data/raw/ulb-credit-card-fraud-detection/` |
 | IEEE-CIS Fraud Detection | Heavily imbalanced | 590,540 | 432 | `isFraud` (0/1) | 3.50% | 1:28 | https://www.kaggle.com/competitions/ieee-fraud-detection/data | `data/raw/ieee-cis-fraud-detection/` |
-| UCI Portuguese Bank Marketing | Moderately imbalanced | 41,188 | 20 | `y` (no/yes) | 11.3% | 1:7.9 | https://archive.ics.uci.edu/dataset/222/bank+marketing | `data/raw/uci-portuguese-bank-marketing/` |
-| UCI Taiwan Credit Card Default | Moderately imbalanced | 30,000 | 24 | `default payment next month` (0/1) | 22.1% | 1:3.5 | https://archive.ics.uci.edu/dataset/350/default+of+credit+card+clients | `data/raw/uci-taiwan-credit-card/` |
+| UCI Portuguese Bank Marketing | Moderately imbalanced | 45,211 | 16 | `y` (no/yes) | 11.7% | 1:7.5 | https://archive.ics.uci.edu/dataset/222/bank+marketing | `data/raw/uci-portuguese-bank-marketing/` |
+| UCI Taiwan Credit Card Default | Moderately imbalanced | 30,000 | 23 | `Y` (0/1) | 22.1% | 1:3.5 | https://archive.ics.uci.edu/dataset/350/default+of+credit+card+clients | `data/raw/uci-taiwan-credit-card/` |
 | UCI South German Credit | Near-balanced | 1,000 | 20 | `kredit` (0=bad/1=good) | 30.0% | 1:2.3 | https://archive.ics.uci.edu/dataset/573/south+german+credit | `data/raw/uci-south-german-credit/` |
-| UCI Australian Credit Approval | Near-balanced | 690 | 14 | `Class` (0/1) | 44.5% | 1:1.2 | https://archive.ics.uci.edu/dataset/143/statlog+australian+credit+approval | `data/raw/uci-australian-credit-approval/` |
+| UCI Australian Credit Approval | Near-balanced | 690 | 14 | `A15` (0/1) | 44.5% | 1:1.2 | https://archive.ics.uci.edu/dataset/143/statlog+australian+credit+approval | `data/raw/uci-australian-credit-approval/` |
 
 ---
 
@@ -37,18 +37,23 @@ Loader functions live in `src/ingest.R`. Each dataset requires its own loader du
 |---|---|---|
 | ULB Credit Card Fraud | CSV | Single file |
 | IEEE-CIS Fraud Detection | CSV | Two tables joined on `TransactionID` (left join): `train_transaction.csv` + `train_identity.csv`. The `test_*` files have no labels and are ignored. |
-| UCI Portuguese Bank Marketing | CSV (semicolon-separated) | Four versions ship in the folder; only `bank-additional-full.csv` is used (41,188 rows, most complete feature set) |
-| UCI Taiwan Credit Card Default | XLS | First row is a redundant header and is skipped (`skip = 1`); `ID` column is dropped |
-| UCI South German Credit | Space-separated with header | German variable names |
-| UCI Australian Credit Approval | Space-separated, no header | Column names assigned as `A1–A14` + `Class` |
+| UCI Portuguese Bank Marketing | CSV (`features.csv` + `targets.csv`) | Downloaded via `ucimlrepo` (id=222); target column `y` |
+| UCI Taiwan Credit Card Default | CSV (`features.csv` + `targets.csv`) | Downloaded via `ucimlrepo` (id=350); features named `X1–X23`, target `Y` |
+| UCI South German Credit | Space-separated with header | Downloaded via direct zip URL; German variable names |
+| UCI Australian Credit Approval | CSV (`features.csv` + `targets.csv`) | Downloaded via `ucimlrepo` (id=143); features named `A1–A14`, target `A15` |
 
 ---
 
 ### 2. Preprocess — `scripts/02_preprocess.R`
 
-Reads raw data, applies a uniform schema, splits into three partitions, and writes Parquet files to `data/interim/`. Raw files are never modified.
+Reads raw data, enforces column types, applies a uniform schema, splits into three partitions, and writes Parquet files to `data/interim/`. Raw files are never modified.
 
 Functions live in `src/preprocess.R`.
+
+**Type enforcement:** applied before column standardization so types are preserved in Parquet. Two strategies:
+
+- `cast_types_from_variables(df, path)` — reads `variables.csv` (ucimlrepo) and maps UCI types to R types: `Integer` → `integer`, `Continuous` → `double`, `Categorical` / `Binary` / `Date` → `factor`. Used by Bank Marketing, Taiwan, and Australian.
+- `cast_types(df, col_types)` — takes a named character vector and coerces each column. Used by South German (from `codetable.txt`), ULB, and IEEE-CIS.
 
 **Column standardization:** the target is renamed to `y` (1 = minority / event of interest) and all features are renamed to `x1 … xn`. This makes all downstream code dataset-agnostic. For datasets where the minority class is not encoded as 1 in the raw file, a `positive_class` argument handles the inversion (South German: `kredit = 0` → `y = 1`; Bank Marketing: `y = "yes"` → `y = 1`).
 
@@ -66,7 +71,7 @@ Functions live in `src/preprocess.R`.
 |---|---|---|---|---|---|
 | ULB Credit Card Fraud | 170,884 (60%) | 56,961 (20%) | 56,962 (20%) | 0.17% | 1:578 |
 | IEEE-CIS Fraud Detection | 354,324 (60%) | 118,108 (20%) | 118,108 (20%) | 3.50% | 1:28 |
-| UCI Portuguese Bank Marketing | 24,713 (60%) | 8,238 (20%) | 8,237 (20%) | 11.3% | 1:7.9 |
+| UCI Portuguese Bank Marketing | 27,126 (60%) | 9,042 (20%) | 9,043 (20%) | 11.7% | 1:7.5 |
 | UCI Taiwan Credit Card Default | 18,000 (60%) | 6,000 (20%) | 6,000 (20%) | 22.1% | 1:3.5 |
 | UCI South German Credit | 600 (60%) | 200 (20%) | 200 (20%) | 30.0% | 1:2.3 |
 | UCI Australian Credit Approval | 414 (60%) | 138 (20%) | 138 (20%) | 44.5% | 1:1.2 |
@@ -89,10 +94,10 @@ Functions live in `src/eda.R`.
 |---|---|---|---|---|---|---|---|
 | ULB Credit Card Fraud | 284,807 | 30 | 30 | 0 | 0 | 0% | 6.1 – 172,792 |
 | IEEE-CIS Fraud Detection | 590,540 | 432 | 401 | 31 | 414 | 100% | 1.0 – 15,724,731 |
-| UCI Portuguese Bank Marketing | 41,188 | 20 | 10 | 10 | 0 | 0% | 2.6 – 4,918 |
-| UCI Taiwan Credit Card Default | 30,000 | 23 | 23 | 0 | 0 | 0% | 1.0 – 1,821,353 |
-| UCI South German Credit | 1,000 | 20 | 20 | 0 | 0 | 0% | 1.0 – 18,174 |
-| UCI Australian Credit Approval | 690 | 14 | 14 | 0 | 0 | 0% | 1.0 – 100,000 |
+| UCI Portuguese Bank Marketing | 45,211 | 16 | 6 | 10 | 3 | — | — |
+| UCI Taiwan Credit Card Default | 30,000 | 23 | 23 | 0 | 0 | 0% | — |
+| UCI South German Credit | 1,000 | 20 | 3 | 17 | 0 | 0% | — |
+| UCI Australian Credit Approval | 690 | 14 | 6 | 8 | 0 | 0% | — |
 
 > IEEE-CIS: 100% of rows have at least one missing value because identity records exist for only a subset of transactions (left join). 414 of 432 feature columns are affected. Missing values are expected and will be handled by imputation in preprocessing.
 

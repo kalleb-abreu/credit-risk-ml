@@ -1,22 +1,18 @@
 library(here)
 library(readr)
-library(readxl)
+library(dplyr)
 
-#' Load a CSV dataset and return a tibble
+#' Load a generic CSV dataset
 load_csv <- function(path) {
   read_csv(here::here(path), show_col_types = FALSE)
 }
 
-#' Load the UCI Australian Credit Approval dataset
-#' Space-separated, no header; assigns standard column names A1-A14 + Class
-load_australian <- function(path) {
-  col_names <- c(paste0("A", 1:14), "Class")
-  read_table(
-    here::here(path),
-    col_names = col_names,
-    col_types = cols(.default = col_double()),
-    show_col_types = FALSE
-  )
+#' Load a dataset downloaded via ucimlrepo
+#' Reads features.csv + targets.csv and binds them into one tibble
+load_ucimlrepo <- function(dir) {
+  features <- read_csv(here::here(dir, "features.csv"), show_col_types = FALSE)
+  targets  <- read_csv(here::here(dir, "targets.csv"),  show_col_types = FALSE)
+  bind_cols(features, targets)
 }
 
 #' Load the UCI South German Credit dataset
@@ -25,37 +21,20 @@ load_south_german <- function(path) {
   read_table(here::here(path), show_col_types = FALSE)
 }
 
-#' Load the UCI Taiwan Credit Card Default dataset
-#' XLS file; first row is a secondary header that must be skipped
-load_taiwan <- function(path) {
-  read_excel(here::here(path), skip = 1)
-}
-
-#' Load the UCI Portuguese Bank Marketing dataset
-#' Semicolon-separated with header; uses the full bank-additional dataset
-load_bank_marketing <- function(path) {
-  read_delim(here::here(path), delim = ";", show_col_types = FALSE)
-}
-
 #' Load the IEEE-CIS Fraud Detection dataset
 #' Joins train_transaction and train_identity on TransactionID (left join);
 #' drops TransactionID afterwards. The test files have no labels and are ignored.
 load_ieee <- function(base_path) {
   transactions <- load_csv(file.path(base_path, "train_transaction.csv"))
   identity     <- load_csv(file.path(base_path, "train_identity.csv"))
-  dplyr::left_join(transactions, identity, by = "TransactionID") |>
-    dplyr::select(-TransactionID)
+  left_join(transactions, identity, by = "TransactionID") |>
+    select(-TransactionID)
 }
 
 #' Compute class distribution for a binary target column
 class_distribution <- function(df, target_col) {
   target_col <- rlang::sym(target_col)
-
-  counts <- df |>
-    dplyr::count({{ target_col }}) |>
-    dplyr::mutate(
-      pct = n / sum(n) * 100
-    )
-
-  counts
+  df |>
+    count({{ target_col }}) |>
+    mutate(pct = n / sum(n) * 100)
 }

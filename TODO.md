@@ -49,7 +49,7 @@ The core of your experimental design: compare resampling techniques across **thr
 **Cross-cutting data tasks**
 - [x] Document all three datasets in a comparison table: source, size, features, target variable, imbalance ratio.
 - [ ] Standardize preprocessing across datasets (missing value handling, encoding, scaling).
-- [ ] Enforce column types in `02_preprocess.R` based on dataset documentation. Bank Marketing (`bank-additional-names.txt`) and South German (`codetable.txt`) have explicit type info; ULB, IEEE-CIS, Taiwan, and Australian have no description files — types must be defined manually.
-- [ ] Create `scripts/00_download.R` to programmatically download datasets where a public URL is available (UCI datasets). Kaggle datasets require manual download (API key or browser) and should print instructions instead.
+- [x] Enforce column types in `02_preprocess.R` based on dataset documentation. Implemented via `cast_types_from_variables()` (reads `variables.csv`) for Bank Marketing / Taiwan / Australian, and `cast_types()` (manual spec) for South German / ULB / IEEE-CIS. Types are preserved in Parquet.
+- [x] Create `scripts/00_download.py` to programmatically download datasets where a public URL is available (UCI datasets via `ucimlrepo`; South German Credit via direct zip URL). Kaggle datasets require manual download (API key or browser) and should print instructions instead.
 
 ---

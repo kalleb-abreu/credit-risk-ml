@@ -1,6 +1,53 @@
 library(here)
 library(dplyr)
+library(readr)
 library(arrow)
+
+#' Enforce column types using a ucimlrepo variables.csv file
+#'
+#' Applies to Feature rows only; the target column is left as-is for
+#' standardize_columns() to handle. Type mapping:
+#'   Integer            -> integer
+#'   Continuous         -> double
+#'   Categorical / Binary / Date -> factor
+#'
+#' @param df   A tibble.
+#' @param path Path to variables.csv (relative to project root).
+cast_types_from_variables <- function(df, path) {
+  vars <- read_csv(here::here(path), show_col_types = FALSE) |>
+    filter(role == "Feature")
+
+  for (i in seq_len(nrow(vars))) {
+    col  <- vars$name[i]
+    type <- vars$type[i]
+    if (!col %in% names(df)) next
+    df[[col]] <- switch(type,
+      Integer    = as.integer(df[[col]]),
+      Continuous = as.double(df[[col]]),
+      factor(df[[col]])          # Categorical, Binary, Date
+    )
+  }
+  df
+}
+
+#' Enforce column types from a named character vector
+#'
+#' Used for datasets without a variables.csv (ULB, IEEE-CIS, South German).
+#' Columns not present in `df` are silently skipped.
+#'
+#' @param df        A tibble.
+#' @param col_types Named character vector: c(col_name = "integer"|"double"|"factor").
+cast_types <- function(df, col_types) {
+  for (col in names(col_types)) {
+    if (!col %in% names(df)) next
+    df[[col]] <- switch(col_types[[col]],
+      integer = as.integer(df[[col]]),
+      double  = as.double(df[[col]]),
+      factor  = factor(df[[col]])
+    )
+  }
+  df
+}
 
 #' Rename target to `y` (0/1) and all features to `x1 ... xn`
 #'
