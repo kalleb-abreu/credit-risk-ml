@@ -59,6 +59,15 @@ Functions live in `src/preprocess.R`.
 
 **Column standardization:** the target is renamed to `y` (1 = minority / event of interest) and all features are renamed to `x1 … xn`. This makes all downstream code dataset-agnostic. For datasets where the minority class is not encoded as 1 in the raw file, a `positive_class` argument handles the inversion (South German: `kredit = 0` → `y = 1`; Bank Marketing: `y = "yes"` → `y = 1`).
 
+| Dataset | y = 1 | y = 0 |
+|---|---|---|
+| ULB Credit Card Fraud | fraud | legitimate |
+| IEEE-CIS Fraud Detection | fraud | legitimate |
+| UCI Portuguese Bank Marketing | subscribed | not subscribed |
+| UCI Taiwan Credit Card Default | defaulted | no default |
+| UCI South German Credit | bad credit | good credit |
+| UCI Australian Credit Approval | rejected | approved |
+
 **Train / calibration / test split:** each dataset is split once using stratified sampling (stratified on `y`) into three fixed partitions. The same proportions and seed are used across all datasets.
 
 | Partition | Size | Purpose | Resampling applied? |
