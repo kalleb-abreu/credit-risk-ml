@@ -93,16 +93,19 @@ Functions live in `src/eda.R`.
 | Dataset | Rows | Features | Numeric | Categorical | Missing cols | % rows with missing | Numeric range |
 |---|---|---|---|---|---|---|---|
 | ULB Credit Card Fraud | 284,807 | 30 | 30 | 0 | 0 | 0% | 6.1 – 172,792 |
-| IEEE-CIS Fraud Detection | 590,540 | 432 | 401 | 31 | 414 | 100% | 1.0 – 15,724,731 |
-| UCI Portuguese Bank Marketing | 45,211 | 16 | 6 | 10 | 3 | — | — |
-| UCI Taiwan Credit Card Default | 30,000 | 23 | 23 | 0 | 0 | 0% | — |
-| UCI South German Credit | 1,000 | 20 | 3 | 17 | 0 | 0% | — |
-| UCI Australian Credit Approval | 690 | 14 | 6 | 8 | 0 | 0% | — |
+| IEEE-CIS Fraud Detection | 590,540 | 432 | 383 | 49 | 414 | 100% | 1.0 – 15,724,731 |
+| UCI Portuguese Bank Marketing | 45,211 | 16 | 6 | 10 | 4 | 82.7% | 62.0 – 110,146 |
+| UCI Taiwan Credit Card Default | 30,000 | 23 | 23 | 0 | 0 | 0% | 1.0 – 1,821,353 |
+| UCI South German Credit | 1,000 | 20 | 3 | 17 | 0 | 0% | 56.0 – 18,174 |
+| UCI Australian Credit Approval | 690 | 14 | 6 | 8 | 0 | 0% | 28.0 – 100,000 |
 
 > IEEE-CIS: 100% of rows have at least one missing value because identity records exist for only a subset of transactions (left join). 414 of 432 feature columns are affected. Missing values are expected and will be handled by imputation in preprocessing.
+> Bank Marketing: 82.7% of rows have at least one missing value across 4 columns (`education`, `contact`, `pdays`, `poutcome`). The ucimlrepo version encodes unknown/not-contacted values as NA rather than sentinel strings.
 
 **Figures:**
 
 | Figure | Description |
 |---|---|
 | `imbalance_spectrum.png` | All six datasets plotted on a minority-class axis, grouped by imbalance scenario |
+| `class_distribution.png` | Bar chart of minority class percentage per dataset |
+| `ieee_missing_cols.png` | Top 20 IEEE-CIS columns ranked by missingness rate |

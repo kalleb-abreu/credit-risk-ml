@@ -59,6 +59,102 @@ eda_summary <- function() {
   bind_rows(rows)
 }
 
+#' Plot minority class percentage as a bar chart for all six datasets
+plot_class_distribution <- function() {
+  scenario_colors <- c(
+    "Heavily imbalanced"    = "#D55E00",
+    "Moderately imbalanced" = "#0072B2",
+    "Near-balanced"         = "#009E73"
+  )
+
+  datasets <- data.frame(
+    name = c(
+      "ULB Credit Card Fraud",
+      "IEEE-CIS Fraud Detection",
+      "UCI Portuguese\nBank Marketing",
+      "UCI Taiwan\nCredit Card Default",
+      "UCI South\nGerman Credit",
+      "UCI Australian\nCredit Approval"
+    ),
+    minority_pct = c(0.17, 3.50, 11.7, 22.1, 30.0, 44.5),
+    scenario = factor(
+      c("Heavily imbalanced", "Heavily imbalanced",
+        "Moderately imbalanced", "Moderately imbalanced",
+        "Near-balanced", "Near-balanced"),
+      levels = c("Heavily imbalanced", "Moderately imbalanced", "Near-balanced")
+    )
+  )
+
+  datasets$name <- factor(datasets$name, levels = datasets$name)
+
+  ggplot(datasets, aes(x = name, y = minority_pct, fill = scenario)) +
+    geom_col(width = 0.6) +
+    geom_text(
+      aes(label = paste0(minority_pct, "%")),
+      hjust = -0.15, size = 3.2, color = "grey30"
+    ) +
+    scale_fill_manual(values = scenario_colors, name = NULL) +
+    scale_y_continuous(
+      limits = c(0, 55),
+      labels = function(x) paste0(x, "%")
+    ) +
+    coord_flip() +
+    labs(x = NULL, y = "Minority class (%)") +
+    theme_minimal(base_size = 12) +
+    theme(
+      legend.position  = "bottom",
+      panel.grid.major.y = element_blank(),
+      panel.grid.minor   = element_blank()
+    )
+}
+
+#' Plot top missing columns for IEEE-CIS Fraud Detection
+#'
+#' Reads the full IEEE-CIS dataset (all partitions combined) from interim
+#' Parquet files and ranks feature columns by missingness rate.
+#'
+#' @param top_n Number of columns to show (default 20).
+plot_missing_detail <- function(top_n = 20) {
+  df <- bind_rows(lapply(c("train", "calibration", "test"), function(pt) {
+    read_parquet(here::here("data/interim", paste0("ieee_", pt, ".parquet")))
+  }))
+
+  feat_cols <- setdiff(names(df), "y")
+  miss_rate <- sort(
+    colMeans(is.na(df[feat_cols])) * 100,
+    decreasing = TRUE
+  )
+  miss_rate <- miss_rate[miss_rate > 0]
+
+  top <- data.frame(
+    column   = factor(names(miss_rate)[seq_len(min(top_n, length(miss_rate)))],
+                      levels = rev(names(miss_rate)[seq_len(min(top_n, length(miss_rate)))])),
+    miss_pct = miss_rate[seq_len(min(top_n, length(miss_rate)))]
+  )
+
+  ggplot(top, aes(x = column, y = miss_pct)) +
+    geom_col(fill = "#0072B2", width = 0.7) +
+    geom_text(
+      aes(label = paste0(round(miss_pct, 1), "%")),
+      hjust = -0.1, size = 3, color = "grey30"
+    ) +
+    scale_y_continuous(
+      limits = c(0, 105),
+      labels = function(x) paste0(x, "%")
+    ) +
+    coord_flip() +
+    labs(
+      x = NULL,
+      y = "Missing (%)",
+      title = paste0("IEEE-CIS: top ", top_n, " columns by missingness rate")
+    ) +
+    theme_minimal(base_size = 12) +
+    theme(
+      panel.grid.major.y = element_blank(),
+      panel.grid.minor   = element_blank()
+    )
+}
+
 #' Plot dataset positions along the imbalance spectrum (0–50%)
 plot_imbalance_spectrum <- function() {
   # Okabe-Ito colorblind-safe palette
