@@ -49,6 +49,47 @@ cast_types <- function(df, col_types) {
   df
 }
 
+#' Impute missing values in train / calibration / test splits
+#'
+#' Parameters are estimated on the training partition only to prevent leakage,
+#' then applied uniformly to all three partitions:
+#'   - Numeric (integer / double) NA -> median of the training partition
+#'   - Factor / character NA         -> new level "unknown"
+#'
+#' @param splits Named list returned by `stratified_split()`.
+impute_splits <- function(splits) {
+  train <- splits$train
+  feat  <- setdiff(names(train), "y")
+
+  num_cols <- feat[sapply(train[feat], is.numeric)]
+  cat_cols <- feat[sapply(train[feat], function(x) is.factor(x) || is.character(x))]
+
+  # Compute medians from training data only
+  medians <- sapply(train[num_cols], median, na.rm = TRUE)
+
+  apply_imputation <- function(df) {
+    for (col in num_cols) {
+      nas <- is.na(df[[col]])
+      if (any(nas)) df[[col]][nas] <- medians[[col]]
+    }
+    for (col in cat_cols) {
+      nas <- is.na(df[[col]])
+      if (any(nas)) {
+        if (is.factor(df[[col]])) {
+          levels(df[[col]]) <- c(levels(df[[col]]), "unknown")
+        } else {
+          df[[col]] <- as.character(df[[col]])
+        }
+        df[[col]][nas] <- "unknown"
+        if (!is.factor(df[[col]])) df[[col]] <- factor(df[[col]])
+      }
+    }
+    df
+  }
+
+  lapply(splits, apply_imputation)
+}
+
 #' Rename target to `y` (0/1) and all features to `x1 ... xn`
 #'
 #' @param df          A tibble.
@@ -102,16 +143,30 @@ stratified_split <- function(df, train_prop = 0.60, cal_prop = 0.20, seed = 42) 
   )
 }
 
-#' Write train / calibration / test splits to `data/interim/` as Parquet files
+#' Write train / calibration / test splits to Parquet files
 #'
-#' @param splits Named list returned by `stratified_split()`.
+#' @param splits Named list returned by `stratified_split()` or `impute_splits()`.
 #' @param name   Dataset identifier used in the output filenames.
-save_splits <- function(splits, name) {
+#' @param dir    Output directory relative to project root (default `"data/interim"`).
+save_splits <- function(splits, name, dir = "data/interim") {
   for (partition in names(splits)) {
-    path <- here::here("data/interim", paste0(name, "_", partition, ".parquet"))
+    path <- here::here(dir, paste0(name, "_", partition, ".parquet"))
     arrow::write_parquet(splits[[partition]], path)
     message("Saved ", path,
             " (", nrow(splits[[partition]]), " rows | y=1: ",
             sum(splits[[partition]]$y), ")")
   }
+}
+
+#' Load train / calibration / test splits from Parquet files
+#'
+#' @param name Dataset identifier used in the filenames.
+#' @param dir  Directory to read from relative to project root (default `"data/interim"`).
+#' @return Named list with elements `train`, `calibration`, `test`.
+load_splits <- function(name, dir = "data/interim") {
+  partitions <- c("train", "calibration", "test")
+  splits <- lapply(partitions, function(pt) {
+    arrow::read_parquet(here::here(dir, paste0(name, "_", pt, ".parquet")))
+  })
+  setNames(splits, partitions)
 }

@@ -55,6 +55,8 @@ Functions live in `src/preprocess.R`.
 - `cast_types_from_variables(df, path)` — reads `variables.csv` (ucimlrepo) and maps UCI types to R types: `Integer` → `integer`, `Continuous` → `double`, `Categorical` / `Binary` / `Date` → `factor`. Used by Bank Marketing, Taiwan, and Australian.
 - `cast_types(df, col_types)` — takes a named character vector and coerces each column. Used by South German (from `codetable.txt`), ULB, and IEEE-CIS.
 
+**Bank Marketing — `pdays` transformation:** `pdays` (days since last contact) is NA when a client was never previously contacted. Before column renaming, a binary feature `contacted_before` (1/0) is derived from `pdays`, and `pdays` NA values are set to 0. This must happen before `standardize_columns()` renames all columns to `x1 … xn`.
+
 **Column standardization:** the target is renamed to `y` (1 = minority / event of interest) and all features are renamed to `x1 … xn`. This makes all downstream code dataset-agnostic. For datasets where the minority class is not encoded as 1 in the raw file, a `positive_class` argument handles the inversion (South German: `kredit = 0` → `y = 1`; Bank Marketing: `y = "yes"` → `y = 1`).
 
 **Train / calibration / test split:** each dataset is split once using stratified sampling (stratified on `y`) into three fixed partitions. The same proportions and seed are used across all datasets.
@@ -76,13 +78,13 @@ Functions live in `src/preprocess.R`.
 | UCI South German Credit | 600 (60%) | 200 (20%) | 200 (20%) | 30.0% | 1:2.3 |
 | UCI Australian Credit Approval | 414 (60%) | 138 (20%) | 138 (20%) | 44.5% | 1:1.2 |
 
-**Output:** `data/interim/{dataset}_{partition}.parquet`
+**Output:** `data/interim/{dataset}_{partition}.parquet` (pre-imputation)
 
 ---
 
 ### 3. EDA — `scripts/03_eda.R`
 
-Operates on the standardized interim files. The goal is to characterize each dataset structurally — not to interpret individual features — to justify preprocessing decisions and describe the experimental setup in the paper.
+Operates on the standardized pre-imputation interim files. The goal is to characterize each dataset structurally — not to interpret individual features — to justify preprocessing decisions and describe the experimental setup in the paper.
 
 Functions live in `src/eda.R`.
 
@@ -94,13 +96,28 @@ Functions live in `src/eda.R`.
 |---|---|---|---|---|---|---|---|
 | ULB Credit Card Fraud | 284,807 | 30 | 30 | 0 | 0 | 0% | 6.1 – 172,792 |
 | IEEE-CIS Fraud Detection | 590,540 | 432 | 383 | 49 | 414 | 100% | 1.0 – 15,724,731 |
-| UCI Portuguese Bank Marketing | 45,211 | 16 | 6 | 10 | 4 | 82.7% | 62.0 – 110,146 |
+| UCI Portuguese Bank Marketing | 45,211 | 17 | 7 | 10 | 4 | 82.7% | 0.0 – 110,146 |
 | UCI Taiwan Credit Card Default | 30,000 | 23 | 23 | 0 | 0 | 0% | 1.0 – 1,821,353 |
 | UCI South German Credit | 1,000 | 20 | 3 | 17 | 0 | 0% | 56.0 – 18,174 |
 | UCI Australian Credit Approval | 690 | 14 | 6 | 8 | 0 | 0% | 28.0 – 100,000 |
 
-> IEEE-CIS: 100% of rows have at least one missing value because identity records exist for only a subset of transactions (left join). 414 of 432 feature columns are affected. Missing values are expected and will be handled by imputation in preprocessing.
-> Bank Marketing: 82.7% of rows have at least one missing value across 4 columns (`education`, `contact`, `pdays`, `poutcome`). The ucimlrepo version encodes unknown/not-contacted values as NA rather than sentinel strings.
+> IEEE-CIS: 100% of rows have at least one missing value because identity records exist for only a subset of transactions (left join). 414 of 432 feature columns are affected.
+> Bank Marketing: 82.7% of rows have at least one missing value across 4 columns (`education`, `contact`, `pdays`, `poutcome`). The ucimlrepo version encodes unknown/not-contacted values as NA rather than sentinel strings. Feature count is 17 because `contacted_before` was derived from `pdays` before column renaming.
+
+---
+
+### 4. Impute — `scripts/04_impute.R`
+
+Loads the pre-imputation splits from `data/interim/`, applies missing value imputation, and writes model-ready files to `data/processed/`. Imputation parameters are estimated on the training partition only to prevent data leakage, then applied to calibration and test.
+
+**Strategy:**
+
+- **Numeric NA** → median of the training partition
+- **Categorical NA** → new factor level `"unknown"` (preserves the informative nature of missingness rather than collapsing it into an existing category)
+
+This strategy is intentionally simple — the focus of the paper is on resampling and calibration, not imputation methodology. It is fully reproducible and can be described in one sentence in the methods section.
+
+**Output:** `data/processed/{dataset}_{partition}.parquet` (model-ready)
 
 **Figures:**
 
