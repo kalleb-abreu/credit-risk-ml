@@ -117,6 +117,50 @@ Functions live in `src/eda.R`.
 
 ### 4. Impute — `scripts/04_impute.R`
 
+---
+
+## Resampling Experiment Design
+
+Resampling is applied only to the **training partition**. Calibration and test sets are never resampled. All methods are implemented via the `themis` package as recipe steps inside a `tidymodels` workflow, ensuring the resampling step is fitted on the analysis fold only during cross-validation.
+
+The experiment covers **9 conditions** (1 baseline + 8 resampling methods) across three families:
+
+### Baseline
+
+| Condition | Description |
+|---|---|
+| No resampling | Model trained on the raw imbalanced training set; serves as the reference for all comparisons |
+
+### Oversampling (3)
+
+| Method | `themis` step | Mechanism |
+|---|---|---|
+| Random oversampling | `step_upsample()` | Duplicates minority samples at random; no synthesis |
+| SMOTE | `step_smote()` | Generates synthetic samples by interpolating between a minority sample and its k-nearest neighbors |
+| ADASYN | `step_adasyn()` | Adaptive variant of SMOTE; generates more samples in regions where the minority class is harder to learn |
+
+### Undersampling (3)
+
+| Method | `themis` step | Mechanism |
+|---|---|---|
+| Random undersampling | `step_downsample()` | Removes majority samples at random |
+| Tomek Links | `step_tomek()` | Removes majority samples that are nearest neighbors of minority samples; mild boundary cleaning only |
+| NearMiss | `step_nearmiss()` | Selects majority samples closest to minority samples; more aggressive than Tomek Links |
+
+### Hybrid (2)
+
+| Method | `themis` steps | Mechanism |
+|---|---|---|
+| SMOTE + Tomek Links | `step_smote()` → `step_tomek()` | Oversample minority class then clean noisy majority samples near the boundary |
+| SMOTE + ENN | `step_smote()` → (ENN cleaning) | Oversample then remove samples misclassified by their k-nearest neighbors; stronger cleaning than Tomek Links |
+
+### Design rationale
+
+- **ROSE excluded**: generates samples via kernel density estimation rather than interpolation — a fourth mechanism that would make the oversampling section unwieldy without adding a new narrative thread. Also less suited to the mostly-numeric datasets in this experiment.
+- **Tomek Links as standalone undersampling**: its mild effect at extreme imbalance ratios (e.g. ULB 1:578) is itself a finding — light boundary cleaning alone is insufficient under severe imbalance.
+- **`over_ratio` tuning**: `over_ratio = 1` (full balance) is rarely optimal. Values between 0.25–0.5 are used as starting points and treated as a tunable hyperparameter.
+- **Metric**: accuracy is not used. Primary metrics are ROC-AUC, PR-AUC, and F1; calibration is assessed separately via reliability diagrams and ECE (Expected Calibration Error).
+
 Loads the pre-imputation splits from `data/interim/`, applies missing value imputation, and writes model-ready files to `data/processed/`. Imputation parameters are estimated on the training partition only to prevent data leakage, then applied to calibration and test.
 
 **Strategy:**
