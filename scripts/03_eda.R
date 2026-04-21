@@ -1,6 +1,9 @@
 library(here)
 source(here::here("src/eda.R"))
 
+dir.create(here::here("output"),  recursive = TRUE, showWarnings = FALSE)
+dir.create(here::here("figures"), recursive = TRUE, showWarnings = FALSE)
+
 # --- Structural summary ------------------------------------------------------
 message("=== EDA summary ===")
 summary_tbl <- eda_summary()
