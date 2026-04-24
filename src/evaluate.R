@@ -1,28 +1,28 @@
 library(yardstick)
+library(CalibrationCurves)
+library(dplyr)
 
 #' Compute full metric set for one prediction tibble
 #'
-#' @param preds  Tibble with columns `y` (factor 0/1) and `.pred_1` (numeric).
+#' @param preds  Tibble with columns `y` and `.pred_1` (numeric probability for class 1).
 #' @return Single-row tibble with all metric columns.
 compute_metrics <- function(preds) {
-  preds <- preds |> mutate(
-    y        = factor(y, levels = c(0, 1)),
-    .pred_class = factor(as.integer(.pred_1 >= 0.5), levels = c(0, 1))
-  )
-
-  prob_metrics  <- metric_set(pr_auc, roc_auc, brier_class, mn_log_loss)
-  class_metrics <- metric_set(mcc, sens, spec)
-
-  bind_rows(
-    prob_metrics(preds,  truth = y, estimate = .pred_1,    event_level = "second"),
-    class_metrics(preds, truth = y, estimate = .pred_class, event_level = "second")
-  ) |>
-    select(.metric, .estimate) |>
-    pivot_wider(names_from = .metric, values_from = .estimate) |>
-    rename(
-      brier_score  = brier_class,
-      log_loss     = mn_log_loss,
-      sensitivity  = sens,
-      specificity  = spec
+  preds <- preds |>
+    mutate(
+      y           = factor(as.character(y), levels = c("0", "1")),
+      .pred_class = factor(ifelse(.pred_1 >= 0.5, "1", "0"), levels = c("0", "1"))
     )
+
+  y_int <- as.integer(as.character(preds$y))
+
+  tibble(
+    pr_auc      = pr_auc(preds,      truth = y, .pred_1,          event_level = "second")$.estimate,
+    roc_auc     = roc_auc(preds,     truth = y, .pred_1,          event_level = "second")$.estimate,
+    mcc         = mcc(preds,         truth = y, estimate = .pred_class)$.estimate,
+    brier_score = mean((preds$.pred_1 - y_int)^2),
+    ece         = unname(val.prob.ci.2(preds$.pred_1, y_int, pl = FALSE)$stats[["Eavg"]]),
+    log_loss    = mn_log_loss(preds, truth = y, .pred_1,          event_level = "second")$.estimate,
+    sensitivity = sens(preds,        truth = y, estimate = .pred_class, event_level = "second")$.estimate,
+    specificity = spec(preds,        truth = y, estimate = .pred_class, event_level = "second")$.estimate
+  )
 }
