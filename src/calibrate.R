@@ -1,14 +1,19 @@
 library(probably)
+library(dplyr)
 
-#' Fit Platt and isotonic calibrators from calibration-set predictions
+#' Fit Platt and isotonic calibrators from calibration-partition predictions
 #'
-#' @param preds  Tibble with columns `y` (factor 0/1) and `.pred_1` (numeric).
-#' @return Named list: `platt`, `isotonic` — calibration model objects.
+#' @param preds Tibble with columns `y` and `.pred_1` (as written by 05_train.R).
+#' @return Named list: `platt`, `isotonic`.
 fit_calibrators <- function(preds) {
-  preds <- preds |> mutate(y = factor(y, levels = c(0, 1)))
+  preds <- preds |>
+    mutate(y = factor(as.character(y), levels = c("0", "1")))
+
   list(
-    platt    = cal_estimate_logistic(preds, truth = y, estimate = .pred_1),
-    isotonic = cal_estimate_isotonic(preds, truth = y, estimate = .pred_1)
+    platt    = cal_estimate_logistic(preds, truth = y, estimate = .pred_1,
+                                     event_level = "second"),
+    isotonic = cal_estimate_isotonic(preds, truth = y, estimate = .pred_1,
+                                     event_level = "second")
   )
 }
 
