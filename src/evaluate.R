@@ -20,7 +20,7 @@ compute_metrics <- function(preds) {
     roc_auc     = roc_auc(preds,     truth = y, .pred_1,          event_level = "second")$.estimate,
     mcc         = mcc(preds,         truth = y, estimate = .pred_class)$.estimate,
     brier_score = mean((preds$.pred_1 - y_int)^2),
-    ece         = unname(val.prob.ci.2(preds$.pred_1, y_int, pl = FALSE)$stats[["Eavg"]]),
+    ece         = unname(val.prob.ci.2(pmin(pmax(preds$.pred_1, 1e-6), 1 - 1e-6), y_int, pl = FALSE)$stats[["Eavg"]]),
     log_loss    = mn_log_loss(preds, truth = y, .pred_1,          event_level = "second")$.estimate,
     sensitivity = sens(preds,        truth = y, estimate = .pred_class, event_level = "second")$.estimate,
     specificity = spec(preds,        truth = y, estimate = .pred_class, event_level = "second")$.estimate

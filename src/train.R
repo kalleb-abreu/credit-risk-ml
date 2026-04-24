@@ -20,10 +20,8 @@ spec_rf <- function() {
 }
 
 spec_lgbm <- function() {
-  boost_tree(trees = 300) |>
-    set_engine("lightgbm",
-               num_leaves    = 31,
-               learning_rate = 0.05) |>
+  boost_tree(trees = 300, learn_rate = 0.05) |>
+    set_engine("lightgbm", num_leaves = 31) |>
     set_mode("classification")
 }
 
@@ -35,6 +33,7 @@ spec_lgbm <- function() {
 base_recipe <- function(train) {
   recipe(y ~ ., data = train) |>
     step_nzv(all_predictors()) |>
+    step_other(all_nominal_predictors(), threshold = 0.01) |>
     step_dummy(all_nominal_predictors()) |>
     step_normalize(all_numeric_predictors())
 }
@@ -66,24 +65,26 @@ build_recipe <- function(train, resampling) {
 # correctly in workflows: ENN is applied to training data during prep(), then
 # bypassed when predict() bakes calibration and test partitions.
 
-step_enn <- function(recipe, var, neighbors = 5, skip = TRUE,
+step_enn <- function(recipe, var, neighbors = 5, role = NA, skip = TRUE,
                      id = recipes::rand_id("enn")) {
   recipes::add_step(
     recipe,
     new_step_enn(
       var       = rlang::as_name(rlang::enquo(var)),
       neighbors = neighbors,
+      role      = role,
       skip      = skip,
       id        = id
     )
   )
 }
 
-new_step_enn <- function(var, neighbors, skip, id, trained = FALSE, retain = NULL) {
+new_step_enn <- function(var, neighbors, role, skip, id, trained = FALSE, retain = NULL) {
   recipes::step(
     subclass  = "enn",
     var       = var,
     neighbors = neighbors,
+    role      = role,
     skip      = skip,
     id        = id,
     trained   = trained,
@@ -99,7 +100,7 @@ prep.step_enn <- function(x, training, info = NULL, ...) {
   nn_idx   <- FNN::get.knn(x_mat, k = k)$nn.index
   votes    <- matrix(y_vals[nn_idx], nrow = nrow(x_mat))
   majority <- as.integer(rowSums(votes) > k / 2)
-  new_step_enn(var = x$var, neighbors = x$neighbors,
+  new_step_enn(var = x$var, neighbors = x$neighbors, role = x$role,
                skip = x$skip, id = x$id, trained = TRUE,
                retain = training[majority == y_vals, , drop = FALSE])
 }
