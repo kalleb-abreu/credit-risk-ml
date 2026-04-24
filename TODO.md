@@ -87,13 +87,13 @@
 ## Week 4: Writing & Reporting
 
 ### Report — `scripts/08_report.R`, `src/report.R`
-- [ ] Create `src/report.R` with reusable plotting helpers.
-- [ ] Main results table: PR-AUC and Brier Score by resampling condition, per-classifier breakdown.
-- [ ] Calibration delta table: ECE and Brier Score before vs. after calibration.
-- [ ] `figures/results/pr_auc_heatmap.png` — PR-AUC per resampling condition × dataset.
-- [ ] `figures/results/brier_score_heatmap.png` — Brier Score per calibration method × resampling.
-- [ ] `figures/results/reliability_diagrams/` — uncalibrated vs. Platt vs. isotonic per classifier × dataset.
-- [ ] `figures/results/calibration_delta.png` — ECE reduction across resampling conditions.
+- [x] Create `src/report.R` with reusable plotting helpers.
+- [x] Main results table: PR-AUC and Brier Score by resampling condition, per-classifier breakdown.
+- [x] Calibration delta table: ECE and Brier Score before vs. after calibration.
+- [x] `figures/results/pr_auc_heatmap.png` — PR-AUC per resampling condition × dataset.
+- [x] `figures/results/brier_score_heatmap.png` — Brier Score per calibration method × resampling.
+- [x] `figures/results/reliability_diagrams/` — uncalibrated vs. Platt vs. isotonic per classifier × dataset.
+- [x] `figures/results/calibration_delta.png` — ECE reduction across resampling conditions.
 
 ### Paper
 - [ ] Write methods section: datasets, preprocessing pipeline, experiment grid, fixed parameters, evaluation protocol.

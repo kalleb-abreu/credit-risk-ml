@@ -3,27 +3,35 @@ library(dplyr)
 library(arrow)
 library(ggplot2)
 library(tidyr)
+library(readr)
 
 source(here("src/report.R"))
+source(here("src/calibrate.R"))
 
 metrics <- read_parquet(here("output", "test_metrics.parquet"))
 
+datasets    <- c("ulb", "ieee", "bank_marketing", "taiwan", "south_german", "australian")
+classifiers <- c("logreg", "rf", "lgbm")
+
 dir.create(here("figures", "results"), recursive = TRUE, showWarnings = FALSE)
 dir.create(here("figures", "results", "reliability_diagrams"), showWarnings = FALSE)
+
+# Main results table --------------------------------------------------------
+
+main_tbl <- main_results_table(metrics)
+write_csv(main_tbl, here("output", "main_results.csv"))
 
 # PR-AUC heatmap ------------------------------------------------------------
 
 p_pr <- plot_heatmap(metrics, "pr_auc", "PR-AUC by resampling condition")
 ggsave(here("figures", "results", "pr_auc_heatmap.png"), p_pr, width = 12, height = 6)
 
-# Brier Score heatmap -------------------------------------------------------
+# Brier Score heatmap: calibration method × resampling ---------------------
 
-p_brier <- plot_heatmap(
-  metrics |> filter(calibration != "none"),
-  "brier_score",
-  "Brier Score by calibration method × resampling"
+p_brier <- plot_calibration_heatmap(
+  metrics, "brier_score", "Brier Score by calibration method × resampling"
 )
-ggsave(here("figures", "results", "brier_score_heatmap.png"), p_brier, width = 12, height = 6)
+ggsave(here("figures", "results", "brier_score_heatmap.png"), p_brier, width = 10, height = 6)
 
 # Calibration delta table ---------------------------------------------------
 
@@ -44,5 +52,40 @@ p_delta <- delta |>
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 ggsave(here("figures", "results", "calibration_delta.png"), p_delta, width = 16, height = 8)
+
+# Reliability diagrams: uncalibrated vs. Platt vs. isotonic ----------------
+# One plot per classifier × dataset using the "none" (no resampling) base model.
+
+for (dataset in datasets) {
+  for (classifier in classifiers) {
+    key_base  <- paste(dataset, classifier, "none", sep = "_")
+    test_path <- here("predictions", "test", paste0(key_base, ".parquet"))
+
+    if (!file.exists(test_path)) {
+      message("Skipping reliability diagram (missing): ", key_base)
+      next
+    }
+
+    preds_base <- read_parquet(test_path)
+
+    load_cal <- function(suffix) {
+      path <- here("models", "calibrators", paste0(key_base, "_", suffix, ".rds"))
+      if (file.exists(path)) apply_calibrator(preds_base, readRDS(path)) else preds_base
+    }
+
+    preds_list <- list(
+      none     = preds_base,
+      platt    = load_cal("platt"),
+      isotonic = load_cal("isotonic")
+    )
+
+    p <- plot_reliability_triple(preds_list, paste(dataset, classifier))
+    ggsave(
+      here("figures", "results", "reliability_diagrams",
+           paste0(dataset, "_", classifier, ".png")),
+      p, width = 6, height = 6
+    )
+  }
+}
 
 message("Report complete. Figures written to figures/results/")
