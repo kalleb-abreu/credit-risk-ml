@@ -68,9 +68,9 @@
 - [x] Save predicted probabilities on test partition to `predictions/test/{dataset}_{classifier}_{resampling}.parquet` (columns: `y`, `.pred_1`).
 
 ### Calibration — `scripts/06_calibrate.R`, `src/calibrate.R`
-- [ ] Create `src/calibrate.R` with helpers wrapping `probably::cal_estimate_logistic` and `probably::cal_estimate_isotonic`.
-- [ ] For each of 162 calibration prediction files: fit Platt calibrator, fit isotonic calibrator.
-- [ ] Save calibrators to `models/calibrators/{dataset}_{classifier}_{resampling}_{platt|isotonic}.rds`.
+- [x] Create `src/calibrate.R` with helpers wrapping `probably::cal_estimate_logistic` and `probably::cal_estimate_isotonic`.
+- [x] For each of 162 calibration prediction files: fit Platt calibrator, fit isotonic calibrator.
+- [x] Save calibrators to `models/calibrators/{dataset}_{classifier}_{resampling}_{platt|isotonic}.rds`.
 
 ---
 
