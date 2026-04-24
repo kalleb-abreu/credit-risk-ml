@@ -77,10 +77,10 @@
 ## Week 3: Evaluation
 
 ### Evaluate — `scripts/07_evaluate.R`, `src/evaluate.R`
-- [ ] Create `src/evaluate.R` with a function that takes a prediction tibble and returns all metrics.
-- [ ] For each of 486 configurations (162 base × 3 calibration variants): load test predictions, apply calibrator, compute metrics.
-- [ ] Metrics: `pr_auc`, `roc_auc`, `mcc`, `brier_score`, `ece`, `log_loss`, `sensitivity`, `specificity`.
-- [ ] Save to `output/test_metrics.parquet` — one row per (dataset, classifier, resampling, calibration).
+- [x] Create `src/evaluate.R` with a function that takes a prediction tibble and returns all metrics.
+- [x] For each of 486 configurations (162 base × 3 calibration variants): load test predictions, apply calibrator, compute metrics.
+- [x] Metrics: `pr_auc`, `roc_auc`, `mcc`, `brier_score`, `ece`, `log_loss`, `sensitivity`, `specificity`.
+- [x] Save to `output/test_metrics.parquet` — one row per (dataset, classifier, resampling, calibration).
 
 ---
 
