@@ -60,12 +60,12 @@
 - [x] Scale: 6 datasets × 9 conditions × 3 classifiers = 162 base fits → 486 evaluated configurations.
 
 ### Training — `scripts/05_train.R`, `src/train.R`
-- [ ] Create `src/train.R` with model spec helpers for glmnet, ranger, lightgbm.
-- [ ] Build recipe: `step_nzv()` → `step_dummy()` → `step_normalize()` → resampling step (identical preprocessing across all 9 conditions; only resampling step swapped).
-- [ ] Loop over all 162 dataset × classifier × resampling combinations.
-- [ ] Save fitted model objects to `models/{dataset}_{classifier}_{resampling}.rds`.
-- [ ] Save predicted probabilities on calibration partition to `predictions/calibration/{dataset}_{classifier}_{resampling}.parquet` (columns: `y`, `.pred_1`).
-- [ ] Save predicted probabilities on test partition to `predictions/test/{dataset}_{classifier}_{resampling}.parquet` (columns: `y`, `.pred_1`).
+- [x] Create `src/train.R` with model spec helpers for glmnet, ranger, lightgbm.
+- [x] Build recipe: `step_nzv()` → `step_dummy()` → `step_normalize()` → resampling step (identical preprocessing across all 9 conditions; only resampling step swapped).
+- [x] Loop over all 162 dataset × classifier × resampling combinations.
+- [x] Save fitted model objects to `models/{dataset}_{classifier}_{resampling}.rds`.
+- [x] Save predicted probabilities on calibration partition to `predictions/calibration/{dataset}_{classifier}_{resampling}.parquet` (columns: `y`, `.pred_1`).
+- [x] Save predicted probabilities on test partition to `predictions/test/{dataset}_{classifier}_{resampling}.parquet` (columns: `y`, `.pred_1`).
 
 ### Calibration — `scripts/06_calibrate.R`, `src/calibrate.R`
 - [ ] Create `src/calibrate.R` with helpers wrapping `probably::cal_estimate_logistic` and `probably::cal_estimate_isotonic`.

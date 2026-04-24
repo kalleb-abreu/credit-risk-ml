@@ -7,7 +7,7 @@ source(here("src/preprocess.R"))
 source(here("src/train.R"))
 
 datasets <- c(
-  "ulb", "ieee_cis", "bank_marketing", "taiwan", "south_german", "australian"
+  "ulb", "ieee", "bank_marketing", "taiwan", "south_german", "australian"
 )
 
 classifiers  <- c("logreg", "rf", "lgbm")
@@ -18,13 +18,18 @@ resamplings  <- c(
 
 for (dataset in datasets) {
   splits <- load_splits(dataset, dir = "data/processed")
+  train  <- splits$train |> mutate(y = factor(y, levels = c(0, 1)))
+
+  message("Selecting lambda for: ", dataset)
+  lambda <- select_lambda(train)
 
   for (classifier in classifiers) {
     for (resampling in resamplings) {
       key <- paste(dataset, classifier, resampling, sep = "_")
       message("Fitting: ", key)
 
-      result <- fit_condition(splits, classifier, resampling)
+      result <- fit_condition(splits, classifier, resampling,
+                              penalty = if (classifier == "logreg") lambda else NULL)
 
       saveRDS(
         result$workflow,

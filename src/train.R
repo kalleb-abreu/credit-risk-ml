@@ -7,8 +7,8 @@ library(bonsai)
 
 # Model specs ---------------------------------------------------------------
 
-spec_logreg <- function() {
-  logistic_reg(penalty = tune(), mixture = 0.5) |>
+spec_logreg <- function(penalty) {
+  logistic_reg(penalty = penalty, mixture = 0.5) |>
     set_engine("glmnet") |>
     set_mode("classification")
 }
@@ -31,8 +31,6 @@ spec_lgbm <- function() {
 
 #' Build the base recipe (NZV → dummy → normalize)
 #'
-#' The resampling step is added on top by `build_recipe()`.
-#'
 #' @param train  Training partition tibble with `y` as factor.
 base_recipe <- function(train) {
   recipe(y ~ ., data = train) |>
@@ -49,17 +47,87 @@ build_recipe <- function(train, resampling) {
   rec <- base_recipe(train)
 
   switch(resampling,
-    none          = rec,
-    upsample      = rec |> step_upsample(y, over_ratio = 0.5),
-    smote         = rec |> step_smote(y, over_ratio = 0.5, neighbors = 5),
-    adasyn        = rec |> step_adasyn(y, over_ratio = 0.5, neighbors = 5),
-    downsample    = rec |> step_downsample(y, under_ratio = 1),
-    tomek         = rec |> step_tomek(y),
-    nearmiss      = rec |> step_nearmiss(y, under_ratio = 1, neighbors = 3),
-    smote_tomek   = rec |> step_smote(y, over_ratio = 0.5, neighbors = 5) |> step_tomek(y),
-    smote_enn     = rec |> step_smote(y, over_ratio = 0.5, neighbors = 5),  # TODO: add ENN step
+    none        = rec,
+    upsample    = rec |> step_upsample(y, over_ratio = 0.5),
+    smote       = rec |> step_smote(y, over_ratio = 0.5, neighbors = 5),
+    adasyn      = rec |> step_adasyn(y, over_ratio = 0.5, neighbors = 5),
+    downsample  = rec |> step_downsample(y, under_ratio = 1),
+    tomek       = rec |> step_tomek(y),
+    nearmiss    = rec |> step_nearmiss(y, under_ratio = 1, neighbors = 3),
+    smote_tomek = rec |> step_smote(y, over_ratio = 0.5, neighbors = 5) |> step_tomek(y),
+    smote_enn   = rec |> step_smote(y, over_ratio = 0.5, neighbors = 5) |> step_enn(y),
     stop("Unknown resampling condition: ", resampling)
   )
+}
+
+# Custom ENN recipe step ----------------------------------------------------
+# themis does not include step_enn(); implemented here using FNN::get.knn().
+# Follows the themis prep-stores / bake-returns pattern so skip = TRUE works
+# correctly in workflows: ENN is applied to training data during prep(), then
+# bypassed when predict() bakes calibration and test partitions.
+
+step_enn <- function(recipe, var, neighbors = 5, skip = TRUE,
+                     id = recipes::rand_id("enn")) {
+  recipes::add_step(
+    recipe,
+    new_step_enn(
+      var       = rlang::as_name(rlang::enquo(var)),
+      neighbors = neighbors,
+      skip      = skip,
+      id        = id
+    )
+  )
+}
+
+new_step_enn <- function(var, neighbors, skip, id, trained = FALSE, retain = NULL) {
+  recipes::step(
+    subclass  = "enn",
+    var       = var,
+    neighbors = neighbors,
+    skip      = skip,
+    id        = id,
+    trained   = trained,
+    retain    = retain
+  )
+}
+
+prep.step_enn <- function(x, training, info = NULL, ...) {
+  y_col    <- x$var
+  k        <- x$neighbors
+  y_vals   <- as.integer(as.character(training[[y_col]]))
+  x_mat    <- as.matrix(dplyr::select(training, -dplyr::all_of(y_col)))
+  nn_idx   <- FNN::get.knn(x_mat, k = k)$nn.index
+  votes    <- matrix(y_vals[nn_idx], nrow = nrow(x_mat))
+  majority <- as.integer(rowSums(votes) > k / 2)
+  new_step_enn(var = x$var, neighbors = x$neighbors,
+               skip = x$skip, id = x$id, trained = TRUE,
+               retain = training[majority == y_vals, , drop = FALSE])
+}
+
+bake.step_enn <- function(object, new_data, ...) {
+  if (is.null(new_data)) object$retain else new_data
+}
+
+print.step_enn <- function(x, ...) {
+  cat("ENN undersampling on", x$var, "\n")
+  invisible(x)
+}
+
+# Lambda selection ----------------------------------------------------------
+
+#' Select glmnet penalty via internal 5-fold CV on the training set
+#'
+#' Uses base_recipe (no resampling) so lambda is resampling-condition-agnostic.
+#' Call once per dataset before the resampling loop. Returns lambda.1se.
+#'
+#' @param train  Training partition tibble with `y` as factor.
+select_lambda <- function(train) {
+  prepped <- base_recipe(train) |> prep(training = train)
+  baked   <- bake(prepped, new_data = NULL)
+  x <- as.matrix(dplyr::select(baked, -y))
+  y <- as.integer(as.character(baked$y))
+  cv <- glmnet::cv.glmnet(x, y, alpha = 0.5, nfolds = 5, family = "binomial")
+  cv$lambda.1se
 }
 
 # Fit helpers ---------------------------------------------------------------
@@ -69,18 +137,23 @@ build_recipe <- function(train, resampling) {
 #' @param splits      Named list with `train`, `calibration`, `test` tibbles.
 #' @param classifier  One of "logreg", "rf", "lgbm".
 #' @param resampling  One of the 9 condition keys.
+#' @param penalty     Resolved glmnet lambda (required when classifier = "logreg").
 #' @return Named list: `workflow`, `pred_calibration`, `pred_test`.
-fit_condition <- function(splits, classifier, resampling) {
+fit_condition <- function(splits, classifier, resampling, penalty = NULL) {
   train <- splits$train |> mutate(y = factor(y, levels = c(0, 1)))
   cal   <- splits$calibration |> mutate(y = factor(y, levels = c(0, 1)))
   test  <- splits$test  |> mutate(y = factor(y, levels = c(0, 1)))
 
-  spec <- switch(classifier,
-    logreg = spec_logreg(),
-    rf     = spec_rf(),
-    lgbm   = spec_lgbm(),
-    stop("Unknown classifier: ", classifier)
-  )
+  spec <- if (classifier == "logreg") {
+    if (is.null(penalty)) stop("penalty required for logreg")
+    spec_logreg(penalty)
+  } else {
+    switch(classifier,
+      rf   = spec_rf(),
+      lgbm = spec_lgbm(),
+      stop("Unknown classifier: ", classifier)
+    )
+  }
 
   rec <- build_recipe(train, resampling)
 
@@ -96,7 +169,7 @@ fit_condition <- function(splits, classifier, resampling) {
   }
 
   list(
-    workflow        = wf,
+    workflow         = wf,
     pred_calibration = predict_probs(cal),
     pred_test        = predict_probs(test)
   )
