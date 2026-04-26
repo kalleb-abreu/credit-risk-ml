@@ -3,8 +3,6 @@ library(dplyr)
 source(here::here("src/ingest.R"))
 source(here::here("src/preprocess.R"))
 
-dir.create(here::here("data/interim"), recursive = TRUE, showWarnings = FALSE)
-
 # --- ULB Credit Card Fraud ---------------------------------------------------
 # All-numeric: V1-V28 + Amount are double; Time is integer. No missing values.
 ulb_types <- c(

@@ -21,7 +21,7 @@ eda_summary <- function() {
 
   rows <- lapply(seq_along(ids), function(i) {
     df <- bind_rows(lapply(c("train", "calibration", "test"), function(pt) {
-      read_parquet(here::here("data/interim", paste0(ids[i], "_", pt, ".parquet")))
+      read_parquet(here::here("data/interim", ids[i], paste0(pt, ".parquet")))
     }))
 
     feat_cols  <- setdiff(names(df), "y")
@@ -116,7 +116,7 @@ plot_class_distribution <- function() {
 #' @param top_n Number of columns to show (default 20).
 plot_missing_detail <- function(top_n = 20) {
   df <- bind_rows(lapply(c("train", "calibration", "test"), function(pt) {
-    read_parquet(here::here("data/interim", paste0("ieee_", pt, ".parquet")))
+    read_parquet(here::here("data/interim", "ieee", paste0(pt, ".parquet")))
   }))
 
   feat_cols <- setdiff(names(df), "y")

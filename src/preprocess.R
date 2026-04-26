@@ -149,8 +149,10 @@ stratified_split <- function(df, train_prop = 0.60, cal_prop = 0.20, seed = 42) 
 #' @param name   Dataset identifier used in the output filenames.
 #' @param dir    Output directory relative to project root (default `"data/interim"`).
 save_splits <- function(splits, name, dir = "data/interim") {
+  out_dir <- here::here(dir, name)
+  dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
   for (partition in names(splits)) {
-    path <- here::here(dir, paste0(name, "_", partition, ".parquet"))
+    path <- file.path(out_dir, paste0(partition, ".parquet"))
     arrow::write_parquet(splits[[partition]], path)
     message("Saved ", path,
             " (", nrow(splits[[partition]]), " rows | y=1: ",
@@ -166,7 +168,7 @@ save_splits <- function(splits, name, dir = "data/interim") {
 load_splits <- function(name, dir = "data/interim") {
   partitions <- c("train", "calibration", "test")
   splits <- lapply(partitions, function(pt) {
-    arrow::read_parquet(here::here(dir, paste0(name, "_", pt, ".parquet")))
+    arrow::read_parquet(here::here(dir, name, paste0(pt, ".parquet")))
   })
   setNames(splits, partitions)
 }
