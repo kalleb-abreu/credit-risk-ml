@@ -29,25 +29,26 @@
 ### R Project Structure
 - [x] Document chosen structure: `data/raw/`, `data/interim/`, `data/processed/`, `models/`, `predictions/`, `output/`, `figures/`, `src/`, `scripts/`, `reports/`.
 
-### Preprocessing — `scripts/02_preprocess.R`, `src/preprocess.R`
-- [x] Enforce column types (`cast_types_from_variables` for UCI datasets, `cast_types` for ULB / IEEE-CIS / South German).
-- [x] Apply Bank Marketing `pdays → contacted_before` derivation before column renaming.
-- [x] `standardize_columns()`: rename target to `y` (minority = 1), features to `x1…xn`.
-- [x] `stratified_split()`: 60/20/20 stratified on `y`, seed = 42 — outputs to `data/interim/`.
-
 ### Download — `scripts/00_download.py`
 - [x] Programmatic download for UCI datasets and South German Credit. Kaggle datasets print manual instructions.
 
-### EDA — `scripts/03_eda.R`, `src/eda.R`
+### Preprocessing — `scripts/01_preprocess.R`, `src/preprocess.R`
+- [x] Load raw data and print class distribution diagnostics inline (rows, cols, class balance).
+- [x] Enforce column types (`cast_types_from_variables` for UCI datasets, `cast_types` for ULB / IEEE-CIS / South German).
+- [x] Apply Bank Marketing `pdays → contacted_before` derivation before column renaming.
+- [x] `standardize_columns()`: rename target to `y` (minority = 1), features to `x1…xn`.
+- [x] `stratified_split()`: 60/20/20 stratified on `y`, seed = 42 — outputs to `data/interim/{dataset}/`.
+
+### EDA — `scripts/02_eda.R`, `src/eda.R`
 - [x] Structural summary table: rows, features, numeric/categorical split, missing values, numeric range.
 - [x] Imbalance spectrum plot and class distribution bar chart.
 - [x] IEEE-CIS missing column detail plot.
 - [x] Verify y=1/y=0 encoding is consistent across all six datasets.
 
-### Imputation — `scripts/04_impute.R`, `src/preprocess.R::impute_splits()`
+### Imputation — `scripts/03_impute.R`, `src/preprocess.R::impute_splits()`
 - [x] `impute_splits()`: median imputation for numeric NA, `"unknown"` level for categorical NA.
 - [x] Parameters estimated on training partition only; applied to all three partitions.
-- [x] Output to `data/processed/{dataset}_{partition}.parquet`.
+- [x] Output to `data/processed/{dataset}/{partition}.parquet`.
 
 ---
 
@@ -59,24 +60,24 @@
 - [x] Calibration: Platt scaling + isotonic regression (`probably` package) applied to all 162 base fits.
 - [x] Scale: 6 datasets × 9 conditions × 3 classifiers = 162 base fits → 486 evaluated configurations.
 
-### Training — `scripts/05_train.R`, `src/train.R`
+### Training — `scripts/04_train.R`, `src/train.R`
 - [x] Create `src/train.R` with model spec helpers for glmnet, ranger, lightgbm.
 - [x] Build recipe: `step_nzv()` → `step_dummy()` → `step_normalize()` → resampling step (identical preprocessing across all 9 conditions; only resampling step swapped).
 - [x] Loop over all 162 dataset × classifier × resampling combinations.
-- [x] Save fitted model objects to `models/{dataset}_{classifier}_{resampling}.rds`.
-- [x] Save predicted probabilities on calibration partition to `predictions/calibration/{dataset}_{classifier}_{resampling}.parquet` (columns: `y`, `.pred_1`).
-- [x] Save predicted probabilities on test partition to `predictions/test/{dataset}_{classifier}_{resampling}.parquet` (columns: `y`, `.pred_1`).
+- [x] Save fitted model objects to `models/{dataset}/{category}/{classifier}_{resampling}.rds`.
+- [x] Save predicted probabilities on calibration partition to `predictions/calibration/{dataset}/{category}/{classifier}_{resampling}.parquet` (columns: `y`, `.pred_1`).
+- [x] Save predicted probabilities on test partition to `predictions/test/{dataset}/{category}/{classifier}_{resampling}.parquet` (columns: `y`, `.pred_1`).
 
-### Calibration — `scripts/06_calibrate.R`, `src/calibrate.R`
+### Calibration — `scripts/05_calibrate.R`, `src/calibrate.R`
 - [x] Create `src/calibrate.R` with helpers wrapping `probably::cal_estimate_logistic` and `probably::cal_estimate_isotonic`.
 - [x] For each of 162 calibration prediction files: fit Platt calibrator, fit isotonic calibrator.
-- [x] Save calibrators to `models/calibrators/{dataset}_{classifier}_{resampling}_{platt|isotonic}.rds`.
+- [x] Save calibrators to `models/calibrators/{dataset}/{category}/{classifier}_{resampling}_{platt|isotonic}.rds`.
 
 ---
 
 ## Week 3: Evaluation
 
-### Evaluate — `scripts/07_evaluate.R`, `src/evaluate.R`
+### Evaluate — `scripts/06_evaluate.R`, `src/evaluate.R`
 - [x] Create `src/evaluate.R` with a function that takes a prediction tibble and returns all metrics.
 - [x] For each of 486 configurations (162 base × 3 calibration variants): load test predictions, apply calibrator, compute metrics.
 - [x] Metrics: `pr_auc`, `roc_auc`, `mcc`, `brier_score`, `ece`, `log_loss`, `sensitivity`, `specificity`.
@@ -86,7 +87,7 @@
 
 ## Week 4: Writing & Reporting
 
-### Report — `scripts/08_report.R`, `src/report.R`
+### Report — `scripts/07_report.R`, `src/report.R`
 - [x] Create `src/report.R` with reusable plotting helpers.
 - [x] Main results table: PR-AUC and Brier Score by resampling condition, per-classifier breakdown.
 - [x] Calibration delta table: ECE and Brier Score before vs. after calibration.
