@@ -1,0 +1,88 @@
+default:
+  # Set to an integer for subsampled runs (per-class cap); null = full dataset.
+  sample_size: ~
+
+  splits:
+    train: 0.60
+    calibration: 0.20
+    # test proportion is derived as 1 - train - calibration
+    seed: 42
+
+  datasets:
+    - ulb
+    - ieee
+    - bank_marketing
+    - taiwan
+    - south_german
+    - australian
+
+  classifiers:
+    - logreg
+    - rf
+    - lgbm
+
+  # Resampling methods grouped by category.
+  # Remove or comment out individual methods or entire categories as needed.
+  resamplings:
+    none:
+      - none
+    oversample:
+      - upsample
+      - smote
+      - adasyn
+    undersample:
+      - downsample
+      - tomek
+      - nearmiss
+    hybrid:
+      - smote_tomek
+      - smote_enn
+
+  models:
+    logreg:
+      mixture: 0.5   # elastic net ratio: 0 = ridge, 1 = lasso
+      cv_folds: 5
+    rf:
+      trees: 500
+      min_n: 5
+    lgbm:
+      trees: 300
+      learn_rate: 0.05
+      num_leaves: 31
+
+  recipe:
+    step_other_threshold: 0.01
+
+  resampling_params:
+    upsample:
+      over_ratio: 0.5
+    smote:
+      over_ratio: 0.5
+      neighbors: 5
+    adasyn:
+      over_ratio: 0.5
+      neighbors: 5
+    downsample:
+      under_ratio: 1.0
+    tomek: {}
+    nearmiss:
+      under_ratio: 1.0
+      neighbors: 3
+    enn:
+      neighbors: 5
+
+# Example: fast dev run — override only what differs from default.
+# Activate with: R_CONFIG_ACTIVE=dev Rscript scripts/05_train.R
+dev:
+  inherits: default
+  sample_size: 500
+  datasets:
+    - ulb
+    - bank_marketing
+  resamplings:
+    none:
+      - none
+    oversample:
+      - smote
+    undersample:
+      - downsample
