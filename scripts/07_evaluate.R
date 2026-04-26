@@ -7,17 +7,16 @@ library(tidyr)
 source(here("src/calibrate.R"))
 source(here("src/evaluate.R"))
 
-test_files <- list.files(here("predictions", "test"), pattern = "\\.parquet$", full.names = TRUE)
+test_files <- list.files(here("predictions", "test"), pattern = "\\.parquet$", full.names = TRUE, recursive = TRUE)
 
 results <- map_dfr(test_files, function(path) {
-  key   <- tools::file_path_sans_ext(basename(path))
-  parts <- strsplit(key, "_")[[1]]
+  dataset    <- basename(dirname(path))
+  pred_key   <- tools::file_path_sans_ext(basename(path))
+  key        <- paste(dataset, pred_key, sep = "_")
+  parts      <- strsplit(pred_key, "_")[[1]]
 
-  # key format: {dataset}_{classifier}_{resampling} — dataset may contain underscores
-  # classifiers are one of: logreg, rf, lgbm
   classifier_idx <- which(parts %in% c("logreg", "rf", "lgbm"))
   classifier     <- parts[classifier_idx]
-  dataset        <- paste(parts[seq_len(classifier_idx - 1)], collapse = "_")
   resampling     <- paste(parts[seq(classifier_idx + 1, length(parts))], collapse = "_")
 
   preds <- read_parquet(path)

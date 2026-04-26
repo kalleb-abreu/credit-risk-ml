@@ -59,7 +59,7 @@ ggsave(here("figures", "results", "calibration_delta.png"), p_delta, width = 16,
 for (dataset in datasets) {
   for (classifier in classifiers) {
     key_base  <- paste(dataset, classifier, "none", sep = "_")
-    test_path <- here("predictions", "test", paste0(key_base, ".parquet"))
+    test_path <- here("predictions", "test", dataset, paste0(classifier, "_none.parquet"))
 
     if (!file.exists(test_path)) {
       message("Skipping reliability diagram (missing): ", key_base)
