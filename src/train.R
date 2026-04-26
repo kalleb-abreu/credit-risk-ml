@@ -23,21 +23,24 @@ resampling_category <- function(resampling) {
 
 # Model specs ---------------------------------------------------------------
 
-spec_logreg <- function(penalty) {
-  logistic_reg(penalty = penalty, mixture = 0.5) |>
+spec_logreg <- function(penalty, cfg = NULL) {
+  m <- if (!is.null(cfg)) cfg$models$logreg else list(mixture = 0.5)
+  logistic_reg(penalty = penalty, mixture = m$mixture) |>
     set_engine("glmnet") |>
     set_mode("classification")
 }
 
-spec_rf <- function() {
-  rand_forest(trees = 500, mtry = NULL, min_n = 5) |>
+spec_rf <- function(cfg = NULL) {
+  m <- if (!is.null(cfg)) cfg$models$rf else list(trees = 500, min_n = 5)
+  rand_forest(trees = m$trees, mtry = NULL, min_n = m$min_n) |>
     set_engine("ranger", probability = TRUE) |>
     set_mode("classification")
 }
 
-spec_lgbm <- function() {
-  boost_tree(trees = 300, learn_rate = 0.05) |>
-    set_engine("lightgbm", num_leaves = 31) |>
+spec_lgbm <- function(cfg = NULL) {
+  m <- if (!is.null(cfg)) cfg$models$lgbm else list(trees = 300, learn_rate = 0.05, num_leaves = 31)
+  boost_tree(trees = m$trees, learn_rate = m$learn_rate) |>
+    set_engine("lightgbm", num_leaves = m$num_leaves) |>
     set_mode("classification")
 }
 
@@ -46,10 +49,11 @@ spec_lgbm <- function() {
 #' Build the base recipe (NZV → dummy → normalize)
 #'
 #' @param train  Training partition tibble with `y` as factor.
-base_recipe <- function(train) {
+base_recipe <- function(train, cfg = NULL) {
+  threshold <- if (!is.null(cfg)) cfg$recipe$step_other_threshold else 0.01
   recipe(y ~ ., data = train) |>
     step_nzv(all_predictors()) |>
-    step_other(all_nominal_predictors(), threshold = 0.01, other = ".other") |>
+    step_other(all_nominal_predictors(), threshold = threshold, other = ".other") |>
     step_dummy(all_nominal_predictors()) |>
     step_normalize(all_numeric_predictors())
 }
@@ -58,19 +62,27 @@ base_recipe <- function(train) {
 #'
 #' @param train       Training partition tibble.
 #' @param resampling  One of the 9 condition keys (see pipeline.md).
-build_recipe <- function(train, resampling) {
-  rec <- base_recipe(train)
+build_recipe <- function(train, resampling, cfg = NULL) {
+  rec <- base_recipe(train, cfg)
+  p   <- if (!is.null(cfg)) cfg$resampling_params else list(
+    upsample   = list(over_ratio  = 0.5),
+    smote      = list(over_ratio  = 0.5, neighbors = 5),
+    adasyn     = list(over_ratio  = 0.5, neighbors = 5),
+    downsample = list(under_ratio = 1.0),
+    nearmiss   = list(under_ratio = 1.0, neighbors = 3),
+    enn        = list(neighbors   = 5)
+  )
 
   switch(resampling,
     none        = rec,
-    upsample    = rec |> step_upsample(y, over_ratio = 0.5),
-    smote       = rec |> step_smote(y, over_ratio = 0.5, neighbors = 5),
-    adasyn      = rec |> step_adasyn(y, over_ratio = 0.5, neighbors = 5),
-    downsample  = rec |> step_downsample(y, under_ratio = 1),
+    upsample    = rec |> step_upsample(y, over_ratio = p$upsample$over_ratio),
+    smote       = rec |> step_smote(y, over_ratio = p$smote$over_ratio, neighbors = p$smote$neighbors),
+    adasyn      = rec |> step_adasyn(y, over_ratio = p$adasyn$over_ratio, neighbors = p$adasyn$neighbors),
+    downsample  = rec |> step_downsample(y, under_ratio = p$downsample$under_ratio),
     tomek       = rec |> step_tomek(y),
-    nearmiss    = rec |> step_nearmiss(y, under_ratio = 1, neighbors = 3),
-    smote_tomek = rec |> step_smote(y, over_ratio = 0.5, neighbors = 5) |> step_tomek(y),
-    smote_enn   = rec |> step_smote(y, over_ratio = 0.5, neighbors = 5) |> step_enn(y),
+    nearmiss    = rec |> step_nearmiss(y, under_ratio = p$nearmiss$under_ratio, neighbors = p$nearmiss$neighbors),
+    smote_tomek = rec |> step_smote(y, over_ratio = p$smote$over_ratio, neighbors = p$smote$neighbors) |> step_tomek(y),
+    smote_enn   = rec |> step_smote(y, over_ratio = p$smote$over_ratio, neighbors = p$smote$neighbors) |> step_enn(y, neighbors = p$enn$neighbors),
     stop("Unknown resampling condition: ", resampling)
   )
 }
@@ -138,12 +150,13 @@ print.step_enn <- function(x, ...) {
 #' Call once per dataset before the resampling loop. Returns lambda.1se.
 #'
 #' @param train  Training partition tibble with `y` as factor.
-select_lambda <- function(train) {
-  prepped <- base_recipe(train) |> prep(training = train)
+select_lambda <- function(train, cfg = NULL) {
+  m       <- if (!is.null(cfg)) cfg$models$logreg else list(mixture = 0.5, cv_folds = 5)
+  prepped <- base_recipe(train, cfg) |> prep(training = train)
   baked   <- bake(prepped, new_data = NULL)
   x <- as.matrix(dplyr::select(baked, -y))
   y <- as.integer(as.character(baked$y))
-  cv <- glmnet::cv.glmnet(x, y, alpha = 0.5, nfolds = 5, family = "binomial")
+  cv <- glmnet::cv.glmnet(x, y, alpha = m$mixture, nfolds = m$cv_folds, family = "binomial")
   cv$lambda.1se
 }
 
@@ -156,23 +169,23 @@ select_lambda <- function(train) {
 #' @param resampling  One of the 9 condition keys.
 #' @param penalty     Resolved glmnet lambda (required when classifier = "logreg").
 #' @return Named list: `workflow`, `pred_calibration`, `pred_test`.
-fit_condition <- function(splits, classifier, resampling, penalty = NULL) {
+fit_condition <- function(splits, classifier, resampling, penalty = NULL, cfg = NULL) {
   train <- splits$train |> mutate(y = factor(y, levels = c(0, 1)))
   cal   <- splits$calibration |> mutate(y = factor(y, levels = c(0, 1)))
   test  <- splits$test  |> mutate(y = factor(y, levels = c(0, 1)))
 
   spec <- if (classifier == "logreg") {
     if (is.null(penalty)) stop("penalty required for logreg")
-    spec_logreg(penalty)
+    spec_logreg(penalty, cfg)
   } else {
     switch(classifier,
-      rf   = spec_rf(),
-      lgbm = spec_lgbm(),
+      rf   = spec_rf(cfg),
+      lgbm = spec_lgbm(cfg),
       stop("Unknown classifier: ", classifier)
     )
   }
 
-  rec <- build_recipe(train, resampling)
+  rec <- build_recipe(train, resampling, cfg)
 
   wf <- workflow() |>
     add_recipe(rec) |>

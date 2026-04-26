@@ -1,7 +1,9 @@
 library(here)
 source(here::here("src/preprocess.R"))
+source(here::here("src/config.R"))
 
-datasets <- c("ulb", "ieee", "bank_marketing", "taiwan", "south_german", "australian")
+cfg      <- load_config()
+datasets <- cfg$datasets
 
 for (name in datasets) {
   message("=== ", name, " ===")

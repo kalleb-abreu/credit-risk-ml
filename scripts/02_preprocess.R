@@ -2,6 +2,10 @@ library(here)
 library(dplyr)
 source(here::here("src/ingest.R"))
 source(here::here("src/preprocess.R"))
+source(here::here("src/config.R"))
+
+cfg   <- load_config()
+split <- function(df) stratified_split(df, cfg$splits$train, cfg$splits$calibration, cfg$splits$seed)
 
 # --- ULB Credit Card Fraud ---------------------------------------------------
 # All-numeric: V1-V28 + Amount are double; Time is integer. No missing values.
@@ -15,7 +19,7 @@ message("=== ULB Credit Card Fraud ===")
 load_csv("data/raw/ulb-credit-card-fraud-detection/creditcard.csv") |>
   cast_types(ulb_types) |>
   standardize_columns("Class") |>
-  stratified_split() |>
+  split() |>
   save_splits("ulb")
 
 # --- IEEE-CIS Fraud Detection ------------------------------------------------
@@ -36,7 +40,7 @@ message("\n=== IEEE-CIS Fraud Detection ===")
 load_ieee("data/raw/ieee-cis-fraud-detection") |>
   cast_types(ieee_types) |>
   standardize_columns("isFraud") |>
-  stratified_split() |>
+  split() |>
   save_splits("ieee")
 
 # --- UCI Portuguese Bank Marketing -------------------------------------------
@@ -53,7 +57,7 @@ load_ucimlrepo("data/raw/uci-portuguese-bank-marketing") |>
     pdays            = if_else(is.na(pdays), 0L, pdays)
   ) |>
   standardize_columns("y", positive_class = "yes") |>
-  stratified_split() |>
+  split() |>
   save_splits("bank_marketing")
 
 # --- UCI Taiwan Credit Card Default ------------------------------------------
@@ -63,7 +67,7 @@ message("\n=== UCI Taiwan Credit Card Default ===")
 load_ucimlrepo("data/raw/uci-taiwan-credit-card") |>
   cast_types_from_variables("data/raw/uci-taiwan-credit-card/variables.csv") |>
   standardize_columns("Y") |>
-  stratified_split() |>
+  split() |>
   save_splits("taiwan")
 
 # --- UCI South German Credit -------------------------------------------------
@@ -84,7 +88,7 @@ message("\n=== UCI South German Credit ===")
 load_south_german("data/raw/uci-south-german-credit/SouthGermanCredit.asc") |>
   cast_types(sg_types) |>
   standardize_columns("kredit", positive_class = 0) |>
-  stratified_split() |>
+  split() |>
   save_splits("south_german")
 
 # --- UCI Australian Credit Approval ------------------------------------------
@@ -94,5 +98,5 @@ message("\n=== UCI Australian Credit Approval ===")
 load_ucimlrepo("data/raw/uci-australian-credit-approval") |>
   cast_types_from_variables("data/raw/uci-australian-credit-approval/variables.csv") |>
   standardize_columns("A15") |>
-  stratified_split() |>
+  split() |>
   save_splits("australian")

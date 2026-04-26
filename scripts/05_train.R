@@ -5,24 +5,20 @@ library(purrr)
 
 source(here("src/preprocess.R"))
 source(here("src/train.R"))
+source(here("src/config.R"))
 
-datasets <- c(
-  "ulb", "ieee", "bank_marketing", "taiwan", "south_german", "australian"
-)
+cfg         <- load_config()
+datasets    <- cfg$datasets
+classifiers <- cfg$classifiers
+resamplings <- all_resamplings(cfg)
+sample_n    <- cfg$sample_size
 
-classifiers  <- c("logreg", "rf", "lgbm")
-resamplings  <- c(
-  "none", "upsample", "smote", "adasyn",
-  "downsample", "tomek", "nearmiss", "smote_tomek", "smote_enn"
-)
-
-sample_n <- suppressWarnings(as.integer(Sys.getenv("SAMPLE_SIZE", unset = NA_character_)))
-if (!is.na(sample_n)) message("SAMPLE_SIZE=", sample_n, " — training on subsamples only")
+if (!is.null(sample_n)) message("sample_size=", sample_n, " — training on subsamples only")
 
 for (dataset in datasets) {
   splits <- load_splits(dataset, dir = "data/processed")
 
-  if (!is.na(sample_n)) {
+  if (!is.null(sample_n)) {
     n_each <- ceiling(sample_n / 2)
     splits$train <- splits$train |>
       group_by(y) |>
@@ -33,7 +29,7 @@ for (dataset in datasets) {
   train  <- splits$train |> mutate(y = factor(y, levels = c(0, 1)))
 
   message("Selecting lambda for: ", dataset)
-  lambda <- select_lambda(train)
+  lambda <- select_lambda(train, cfg)
 
   for (classifier in classifiers) {
     for (resampling in resamplings) {
@@ -43,7 +39,8 @@ for (dataset in datasets) {
       message("Fitting: ", key)
 
       result <- fit_condition(splits, classifier, resampling,
-                              penalty = if (classifier == "logreg") lambda else NULL)
+                              penalty = if (classifier == "logreg") lambda else NULL,
+                              cfg = cfg)
 
       dir.create(here("models", dataset, category), showWarnings = FALSE, recursive = TRUE)
       saveRDS(
