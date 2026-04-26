@@ -33,7 +33,7 @@ spec_lgbm <- function() {
 base_recipe <- function(train) {
   recipe(y ~ ., data = train) |>
     step_nzv(all_predictors()) |>
-    step_other(all_nominal_predictors(), threshold = 0.01) |>
+    step_other(all_nominal_predictors(), threshold = 0.01, other = ".other") |>
     step_dummy(all_nominal_predictors()) |>
     step_normalize(all_numeric_predictors())
 }
