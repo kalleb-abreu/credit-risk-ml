@@ -10,9 +10,9 @@ source(here("src/evaluate.R"))
 test_files <- list.files(here("predictions", "test"), pattern = "\\.parquet$", full.names = TRUE, recursive = TRUE)
 
 results <- map_dfr(test_files, function(path) {
-  dataset    <- basename(dirname(path))
+  category   <- basename(dirname(path))
+  dataset    <- basename(dirname(dirname(path)))
   pred_key   <- tools::file_path_sans_ext(basename(path))
-  key        <- paste(dataset, pred_key, sep = "_")
   parts      <- strsplit(pred_key, "_")[[1]]
 
   classifier_idx <- which(parts %in% c("logreg", "rf", "lgbm"))
@@ -21,10 +21,11 @@ results <- map_dfr(test_files, function(path) {
 
   preds <- read_parquet(path)
 
+  cal_path <- function(suffix) here("models", "calibrators", dataset, category, paste0(pred_key, "_", suffix, ".rds"))
   calibration_variants <- list(
     none     = NULL,
-    platt    = tryCatch(readRDS(here("models", "calibrators", paste0(key, "_platt.rds"))),    error = function(e) NULL),
-    isotonic = tryCatch(readRDS(here("models", "calibrators", paste0(key, "_isotonic.rds"))), error = function(e) NULL)
+    platt    = tryCatch(readRDS(cal_path("platt")),    error = function(e) NULL),
+    isotonic = tryCatch(readRDS(cal_path("isotonic")), error = function(e) NULL)
   )
 
   map_dfr(names(calibration_variants), function(cal_name) {

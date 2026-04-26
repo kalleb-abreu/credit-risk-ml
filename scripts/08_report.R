@@ -58,18 +58,17 @@ ggsave(here("figures", "results", "calibration_delta.png"), p_delta, width = 16,
 
 for (dataset in datasets) {
   for (classifier in classifiers) {
-    key_base  <- paste(dataset, classifier, "none", sep = "_")
-    test_path <- here("predictions", "test", dataset, paste0(classifier, "_none.parquet"))
+    test_path <- here("predictions", "test", dataset, "none", paste0(classifier, "_none.parquet"))
 
     if (!file.exists(test_path)) {
-      message("Skipping reliability diagram (missing): ", key_base)
+      message("Skipping reliability diagram (missing): ", dataset, "/", classifier)
       next
     }
 
     preds_base <- read_parquet(test_path)
 
     load_cal <- function(suffix) {
-      path <- here("models", "calibrators", paste0(key_base, "_", suffix, ".rds"))
+      path <- here("models", "calibrators", dataset, "none", paste0(classifier, "_none_", suffix, ".rds"))
       if (file.exists(path)) apply_calibrator(preds_base, readRDS(path)) else preds_base
     }
 
@@ -80,9 +79,9 @@ for (dataset in datasets) {
     )
 
     p <- plot_reliability_triple(preds_list, paste(dataset, classifier))
+    dir.create(here("figures", "results", "reliability_diagrams", dataset), showWarnings = FALSE, recursive = TRUE)
     ggsave(
-      here("figures", "results", "reliability_diagrams",
-           paste0(dataset, "_", classifier, ".png")),
+      here("figures", "results", "reliability_diagrams", dataset, paste0(classifier, ".png")),
       p, width = 6, height = 6
     )
   }

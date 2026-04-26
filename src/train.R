@@ -5,6 +5,22 @@ library(ranger)
 library(lightgbm)
 library(bonsai)
 
+# Resampling category -------------------------------------------------------
+
+resampling_category <- function(resampling) {
+  switch(resampling,
+    none        = "none",
+    upsample    = "oversample",
+    smote       = "oversample",
+    adasyn      = "oversample",
+    downsample  = "undersample",
+    tomek       = "undersample",
+    nearmiss    = "undersample",
+    smote_tomek = "hybrid",
+    smote_enn   = "hybrid"
+  )
+}
+
 # Model specs ---------------------------------------------------------------
 
 spec_logreg <- function(penalty) {

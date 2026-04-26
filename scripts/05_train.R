@@ -37,28 +37,30 @@ for (dataset in datasets) {
 
   for (classifier in classifiers) {
     for (resampling in resamplings) {
-      key      <- paste(dataset, classifier, resampling, sep = "_")
+      category <- resampling_category(resampling)
       pred_key <- paste(classifier, resampling, sep = "_")
+      key      <- paste(dataset, classifier, resampling, sep = "_")
       message("Fitting: ", key)
 
       result <- fit_condition(splits, classifier, resampling,
                               penalty = if (classifier == "logreg") lambda else NULL)
 
+      dir.create(here("models", dataset, category), showWarnings = FALSE, recursive = TRUE)
       saveRDS(
         result$workflow,
-        here("models", paste0(key, ".rds"))
+        here("models", dataset, category, paste0(pred_key, ".rds"))
       )
 
-      dir.create(here("predictions", "calibration", dataset), showWarnings = FALSE, recursive = TRUE)
+      dir.create(here("predictions", "calibration", dataset, category), showWarnings = FALSE, recursive = TRUE)
       write_parquet(
         result$pred_calibration,
-        here("predictions", "calibration", dataset, paste0(pred_key, ".parquet"))
+        here("predictions", "calibration", dataset, category, paste0(pred_key, ".parquet"))
       )
 
-      dir.create(here("predictions", "test", dataset), showWarnings = FALSE, recursive = TRUE)
+      dir.create(here("predictions", "test", dataset, category), showWarnings = FALSE, recursive = TRUE)
       write_parquet(
         result$pred_test,
-        here("predictions", "test", dataset, paste0(pred_key, ".parquet"))
+        here("predictions", "test", dataset, category, paste0(pred_key, ".parquet"))
       )
     }
   }
