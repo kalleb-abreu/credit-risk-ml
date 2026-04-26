@@ -1,5 +1,7 @@
-library(here)
-library(dplyr)
+suppressPackageStartupMessages({
+  library(here)
+  library(dplyr)
+})
 source(here::here("src/ingest.R"))
 source(here::here("src/preprocess.R"))
 source(here::here("src/config.R"))

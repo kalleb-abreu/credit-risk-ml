@@ -1,4 +1,4 @@
-library(here)
+suppressPackageStartupMessages(library(here))
 source(here::here("src/preprocess.R"))
 source(here::here("src/config.R"))
 

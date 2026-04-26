@@ -1,6 +1,9 @@
-library(yardstick)
-library(CalibrationCurves)
-library(dplyr)
+suppressPackageStartupMessages({
+  library(yardstick)
+  library(CalibrationCurves)
+  library(dplyr)
+})
+
 
 #' Compute full metric set for one prediction tibble
 #'

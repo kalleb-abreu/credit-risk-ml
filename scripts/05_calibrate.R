@@ -1,7 +1,9 @@
-library(here)
-library(dplyr)
-library(arrow)
-library(purrr)
+suppressPackageStartupMessages({
+  library(here)
+  library(dplyr)
+  library(arrow)
+  library(purrr)
+})
 
 source(here("src/calibrate.R"))
 

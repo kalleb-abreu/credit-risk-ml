@@ -1,7 +1,9 @@
-library(here)
-library(dplyr)
-library(readr)
-library(arrow)
+suppressPackageStartupMessages({
+  library(here)
+  library(dplyr)
+  library(readr)
+  library(arrow)
+})
 
 #' Enforce column types using a ucimlrepo variables.csv file
 #'

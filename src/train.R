@@ -1,9 +1,11 @@
-library(tidymodels)
-library(themis)
-library(glmnet)
-library(ranger)
-library(lightgbm)
-library(bonsai)
+suppressPackageStartupMessages({
+  library(tidymodels)
+  library(themis)
+  library(glmnet)
+  library(ranger)
+  library(lightgbm)
+  library(bonsai)
+})
 
 # Resampling category -------------------------------------------------------
 

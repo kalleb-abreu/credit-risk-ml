@@ -1,4 +1,4 @@
-library(config)
+suppressPackageStartupMessages(library(config))
 
 #' Load pipeline configuration from config.yml
 #'

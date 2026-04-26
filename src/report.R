@@ -1,8 +1,10 @@
-library(ggplot2)
-library(dplyr)
-library(tidyr)
-library(purrr)
-library(probably)
+suppressPackageStartupMessages({
+  library(ggplot2)
+  library(dplyr)
+  library(tidyr)
+  library(purrr)
+  library(probably)
+})
 
 DATASET_ORDER <- c(
   "ulb", "ieee", "bank_marketing", "taiwan", "south_german", "australian"

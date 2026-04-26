@@ -1,9 +1,11 @@
-library(here)
-library(dplyr)
-library(arrow)
-library(ggplot2)
-library(tidyr)
-library(readr)
+suppressPackageStartupMessages({
+  library(here)
+  library(dplyr)
+  library(arrow)
+  library(ggplot2)
+  library(tidyr)
+  library(readr)
+})
 
 source(here("src/report.R"))
 source(here("src/calibrate.R"))

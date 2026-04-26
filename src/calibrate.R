@@ -1,5 +1,7 @@
-library(probably)
-library(dplyr)
+suppressPackageStartupMessages({
+  library(probably)
+  library(dplyr)
+})
 
 # probably's cal_estimate_* and cal_apply require both .pred_0 and .pred_1.
 # Since we only store .pred_1, derive .pred_0 = 1 - .pred_1 at the boundary.

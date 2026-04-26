@@ -1,7 +1,9 @@
-library(here)
-library(ggplot2)
-library(dplyr)
-library(arrow)
+suppressPackageStartupMessages({
+  library(here)
+  library(ggplot2)
+  library(dplyr)
+  library(arrow)
+})
 
 #' Compute structural EDA summary across all six datasets
 #'

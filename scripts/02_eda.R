@@ -1,4 +1,4 @@
-library(here)
+suppressPackageStartupMessages(library(here))
 source(here::here("src/eda.R"))
 
 dir.create(here::here("output"),  recursive = TRUE, showWarnings = FALSE)

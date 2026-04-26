@@ -1,6 +1,8 @@
-library(here)
-library(readr)
-library(dplyr)
+suppressPackageStartupMessages({
+  library(here)
+  library(readr)
+  library(dplyr)
+})
 
 #' Load a generic CSV dataset
 load_csv <- function(path) {
