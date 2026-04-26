@@ -75,10 +75,9 @@ default:
 # Activate with: R_CONFIG_ACTIVE=dev Rscript scripts/05_train.R
 dev:
   inherits: default
-  sample_size: 500
   datasets:
-    - ulb
-    - bank_marketing
+    - south_german
+    - australian
   resamplings:
     none:
       - none
@@ -86,3 +85,4 @@ dev:
       - smote
     undersample:
       - downsample
+    hybrid:
