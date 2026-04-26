@@ -7,6 +7,12 @@ source(here::here("src/config.R"))
 cfg   <- load_config()
 split <- function(df) stratified_split(df, cfg$splits$train, cfg$splits$calibration, cfg$splits$seed)
 
+diagnose <- function(df, target) {
+  message("Rows: ", nrow(df), " | Cols: ", ncol(df))
+  print(class_distribution(df, target))
+  df
+}
+
 # --- ULB Credit Card Fraud ---------------------------------------------------
 # All-numeric: V1-V28 + Amount are double; Time is integer. No missing values.
 ulb_types <- c(
@@ -18,6 +24,7 @@ ulb_types <- c(
 message("=== ULB Credit Card Fraud ===")
 load_csv("data/raw/ulb-credit-card-fraud-detection/creditcard.csv") |>
   cast_types(ulb_types) |>
+  diagnose("Class") |>
   standardize_columns("Class") |>
   split() |>
   save_splits("ulb")
@@ -39,6 +46,7 @@ ieee_types <- setNames(rep("factor", length(ieee_cat_cols)), ieee_cat_cols)
 message("\n=== IEEE-CIS Fraud Detection ===")
 load_ieee("data/raw/ieee-cis-fraud-detection") |>
   cast_types(ieee_types) |>
+  diagnose("isFraud") |>
   standardize_columns("isFraud") |>
   split() |>
   save_splits("ieee")
@@ -56,6 +64,7 @@ load_ucimlrepo("data/raw/uci-portuguese-bank-marketing") |>
     contacted_before = as.integer(!is.na(pdays)),
     pdays            = if_else(is.na(pdays), 0L, pdays)
   ) |>
+  diagnose("y") |>
   standardize_columns("y", positive_class = "yes") |>
   split() |>
   save_splits("bank_marketing")
@@ -66,6 +75,7 @@ load_ucimlrepo("data/raw/uci-portuguese-bank-marketing") |>
 message("\n=== UCI Taiwan Credit Card Default ===")
 load_ucimlrepo("data/raw/uci-taiwan-credit-card") |>
   cast_types_from_variables("data/raw/uci-taiwan-credit-card/variables.csv") |>
+  diagnose("Y") |>
   standardize_columns("Y") |>
   split() |>
   save_splits("taiwan")
@@ -87,6 +97,7 @@ sg_types <- c(
 message("\n=== UCI South German Credit ===")
 load_south_german("data/raw/uci-south-german-credit/SouthGermanCredit.asc") |>
   cast_types(sg_types) |>
+  diagnose("kredit") |>
   standardize_columns("kredit", positive_class = 0) |>
   split() |>
   save_splits("south_german")
@@ -97,6 +108,7 @@ load_south_german("data/raw/uci-south-german-credit/SouthGermanCredit.asc") |>
 message("\n=== UCI Australian Credit Approval ===")
 load_ucimlrepo("data/raw/uci-australian-credit-approval") |>
   cast_types_from_variables("data/raw/uci-australian-credit-approval/variables.csv") |>
+  diagnose("A15") |>
   standardize_columns("A15") |>
   split() |>
   save_splits("australian")
