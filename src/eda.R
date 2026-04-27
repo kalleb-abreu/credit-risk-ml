@@ -11,7 +11,9 @@ suppressPackageStartupMessages({
 #' Parquet files and returns one summary row per dataset covering feature
 #' types, missing values, and numeric scale range.
 eda_summary <- function() {
-  ids <- c("ulb", "ieee", "bank_marketing", "taiwan", "south_german", "australian")
+  ids <- c(
+    "ulb", "ieee", "bank_marketing", "taiwan", "south_german", "australian"
+  )
   names_full <- c(
     "ULB Credit Card Fraud",
     "IEEE-CIS Fraud Detection",
@@ -26,17 +28,19 @@ eda_summary <- function() {
       read_parquet(here::here("data/interim", ids[i], paste0(pt, ".parquet")))
     }))
 
-    feat_cols  <- setdiff(names(df), "y")
-    is_num     <- sapply(df[feat_cols], is.numeric)
-    n_num      <- sum(is_num)
-    n_cat      <- sum(!is_num)
+    feat_cols <- setdiff(names(df), "y")
+    is_num <- sapply(df[feat_cols], is.numeric)
+    n_num <- sum(is_num)
+    n_cat <- sum(!is_num)
 
-    miss_per_col   <- colSums(is.na(df[feat_cols]))
-    n_miss_cols    <- sum(miss_per_col > 0)
-    pct_rows_miss  <- round(mean(rowSums(is.na(df[feat_cols])) > 0) * 100, 1)
+    miss_per_col <- colSums(is.na(df[feat_cols]))
+    n_miss_cols <- sum(miss_per_col > 0)
+    pct_rows_miss <- round(mean(rowSums(is.na(df[feat_cols])) > 0) * 100, 1)
 
     if (n_num > 0) {
-      ranges    <- sapply(df[feat_cols[is_num]], function(x) diff(range(x, na.rm = TRUE)))
+      ranges <- sapply(
+        df[feat_cols[is_num]], function(x) diff(range(x, na.rm = TRUE))
+      )
       range_min <- round(min(ranges), 1)
       range_max <- round(max(ranges), 1)
     } else {
@@ -80,9 +84,11 @@ plot_class_distribution <- function() {
     ),
     minority_pct = c(0.17, 3.50, 11.7, 22.1, 30.0, 44.5),
     scenario = factor(
-      c("Heavily imbalanced", "Heavily imbalanced",
+      c(
+        "Heavily imbalanced", "Heavily imbalanced",
         "Moderately imbalanced", "Moderately imbalanced",
-        "Near-balanced", "Near-balanced"),
+        "Near-balanced", "Near-balanced"
+      ),
       levels = c("Heavily imbalanced", "Moderately imbalanced", "Near-balanced")
     )
   )
@@ -104,9 +110,9 @@ plot_class_distribution <- function() {
     labs(x = NULL, y = "Minority class (%)") +
     theme_minimal(base_size = 12) +
     theme(
-      legend.position  = "bottom",
+      legend.position = "bottom",
       panel.grid.major.y = element_blank(),
-      panel.grid.minor   = element_blank()
+      panel.grid.minor = element_blank()
     )
 }
 
@@ -129,8 +135,9 @@ plot_missing_detail <- function(top_n = 20) {
   miss_rate <- miss_rate[miss_rate > 0]
 
   top <- data.frame(
-    column   = factor(names(miss_rate)[seq_len(min(top_n, length(miss_rate)))],
-                      levels = rev(names(miss_rate)[seq_len(min(top_n, length(miss_rate)))])),
+    column = factor(names(miss_rate)[seq_len(min(top_n, length(miss_rate)))],
+      levels = rev(names(miss_rate)[seq_len(min(top_n, length(miss_rate)))])
+    ),
     miss_pct = miss_rate[seq_len(min(top_n, length(miss_rate)))]
   )
 
@@ -177,31 +184,45 @@ plot_imbalance_spectrum <- function() {
     ),
     minority_pct = c(0.17, 3.50, 11.3, 22.1, 30.0, 44.5),
     scenario = factor(
-      c("Heavily imbalanced", "Heavily imbalanced",
+      c(
+        "Heavily imbalanced", "Heavily imbalanced",
         "Moderately imbalanced", "Moderately imbalanced",
-        "Near-balanced", "Near-balanced"),
+        "Near-balanced", "Near-balanced"
+      ),
       levels = c("Heavily imbalanced", "Moderately imbalanced", "Near-balanced")
     ),
-    side  = c(1, -1, 1, -1, 1, -1),   # 1 = above, -1 = below
-    vjust = c(0,  1, 0,  1, 0,  1),
+    side = c(1, -1, 1, -1, 1, -1), # 1 = above, -1 = below
+    vjust = c(0, 1, 0, 1, 0, 1),
     hjust = c(0.5, 0.5, 0.5, 0.5, 0, 0.5)
   )
 
   stem_height <- 0.32
 
   ggplot(datasets, aes(x = minority_pct, color = scenario)) +
-    annotate("rect", xmin =  0, xmax = 10, ymin = -Inf, ymax = Inf,
-             fill = "#D55E00", alpha = 0.18) +
-    annotate("rect", xmin = 10, xmax = 25, ymin = -Inf, ymax = Inf,
-             fill = "#0072B2", alpha = 0.18) +
-    annotate("rect", xmin = 25, xmax = 50, ymin = -Inf, ymax = Inf,
-             fill = "#009E73", alpha = 0.18) +
-    annotate("text", x =  5,    y =  0.88, label = "Heavily\nimbalanced",
-             color = "#D55E00", size = 3, fontface = "bold", lineheight = 0.9) +
-    annotate("text", x = 17.5,  y =  0.88, label = "Moderately\nimbalanced",
-             color = "#0072B2", size = 3, fontface = "bold", lineheight = 0.9) +
-    annotate("text", x = 37.5,  y =  0.88, label = "Near-balanced",
-             color = "#009E73", size = 3, fontface = "bold", lineheight = 0.9) +
+    annotate("rect",
+      xmin = 0, xmax = 10, ymin = -Inf, ymax = Inf,
+      fill = "#D55E00", alpha = 0.18
+    ) +
+    annotate("rect",
+      xmin = 10, xmax = 25, ymin = -Inf, ymax = Inf,
+      fill = "#0072B2", alpha = 0.18
+    ) +
+    annotate("rect",
+      xmin = 25, xmax = 50, ymin = -Inf, ymax = Inf,
+      fill = "#009E73", alpha = 0.18
+    ) +
+    annotate("text",
+      x = 5, y = 0.88, label = "Heavily\nimbalanced",
+      color = "#D55E00", size = 3, fontface = "bold", lineheight = 0.9
+    ) +
+    annotate("text",
+      x = 17.5, y = 0.88, label = "Moderately\nimbalanced",
+      color = "#0072B2", size = 3, fontface = "bold", lineheight = 0.9
+    ) +
+    annotate("text",
+      x = 37.5, y = 0.88, label = "Near-balanced",
+      color = "#009E73", size = 3, fontface = "bold", lineheight = 0.9
+    ) +
     geom_hline(yintercept = 0, color = "grey60", linewidth = 0.5) +
     geom_segment(
       aes(y = 0, xend = minority_pct, yend = side * stem_height),
@@ -209,8 +230,10 @@ plot_imbalance_spectrum <- function() {
     ) +
     geom_point(aes(y = 0), size = 4) +
     geom_label(
-      aes(y = side * (stem_height + 0.04), label = name, vjust = vjust,
-          hjust = hjust, fill = scenario),
+      aes(
+        y = side * (stem_height + 0.04), label = name, vjust = vjust,
+        hjust = hjust, fill = scenario
+      ),
       size = 2.9,
       color = "white",
       fontface = "bold",
@@ -230,11 +253,11 @@ plot_imbalance_spectrum <- function() {
     labs(x = "Minority class (%)") +
     theme_minimal(base_size = 12) +
     theme(
-      axis.title.y  = element_blank(),
-      axis.text.y   = element_blank(),
-      axis.ticks.y  = element_blank(),
-      panel.grid    = element_blank(),
-      axis.line.x   = element_line(color = "grey60"),
+      axis.title.y = element_blank(),
+      axis.text.y = element_blank(),
+      axis.ticks.y = element_blank(),
+      panel.grid = element_blank(),
+      axis.line.x = element_line(color = "grey60"),
       legend.position = "none"
     )
 }
