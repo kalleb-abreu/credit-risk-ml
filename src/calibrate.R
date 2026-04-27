@@ -3,6 +3,8 @@ suppressPackageStartupMessages({
   library(dplyr)
 })
 
+utils::globalVariables(c(".pred_0", ".pred_1", "y"))
+
 # probably's cal_estimate_* and cal_apply require both .pred_0 and .pred_1.
 # Since we only store .pred_1, derive .pred_0 = 1 - .pred_1 at the boundary.
 add_pred_0 <- function(preds) {
@@ -13,7 +15,7 @@ add_pred_0 <- function(preds) {
 
 #' Fit Platt and isotonic calibrators from calibration-partition predictions
 #'
-#' @param preds Tibble with columns `y` and `.pred_1` (as written by 05_train.R).
+#' @param preds Tibble with columns `y` and `.pred_1`.
 #' @return Named list: `platt`, `isotonic`.
 fit_calibrators <- function(preds) {
   preds <- preds |>
@@ -29,10 +31,13 @@ fit_calibrators <- function(preds) {
 #' Apply a fitted calibrator to a prediction tibble
 #'
 #' @param preds       Tibble with `y` and `.pred_1` columns.
-#' @param calibrator  A calibration object from `fit_calibrators()`, or NULL for uncalibrated.
-#' @return Tibble (same columns as input) with `.pred_1` replaced by calibrated probabilities.
+#' @param calibrator  A calibration object from `fit_calibrators()`,
+#'   or NULL for uncalibrated.
+#' @return Tibble with `.pred_1` replaced by calibrated probabilities.
 apply_calibrator <- function(preds, calibrator = NULL) {
-  if (is.null(calibrator)) return(preds)
+  if (is.null(calibrator)) {
+    return(preds)
+  }
   preds |>
     add_pred_0() |>
     cal_apply(calibrator) |>
