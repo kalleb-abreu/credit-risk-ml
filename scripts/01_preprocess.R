@@ -6,8 +6,12 @@ source(here::here("src/ingest.R"))
 source(here::here("src/preprocess.R"))
 source(here::here("src/config.R"))
 
-cfg   <- load_config()
-split <- function(df) stratified_split(df, cfg$splits$train, cfg$splits$calibration, cfg$splits$seed)
+cfg <- load_config()
+split <- function(df) {
+  stratified_split(
+    df, cfg$splits$train, cfg$splits$calibration, cfg$splits$seed
+  )
+}
 
 diagnose <- function(df, target) {
   message("Rows: ", nrow(df), " | Cols: ", ncol(df))
@@ -18,7 +22,7 @@ diagnose <- function(df, target) {
 # --- ULB Credit Card Fraud ---------------------------------------------------
 # All-numeric: V1-V28 + Amount are double; Time is integer. No missing values.
 ulb_types <- c(
-  setNames(rep("double",  28), paste0("V", 1:28)),
+  setNames(rep("double", 28), paste0("V", 1:28)),
   Amount = "double",
   Time   = "integer"
 )
@@ -54,14 +58,18 @@ load_ieee("data/raw/ieee-cis-fraud-detection") |>
   save_splits("ieee")
 
 # --- UCI Portuguese Bank Marketing -------------------------------------------
-# Types from variables.csv: Integer -> integer, Categorical/Binary/Date -> factor.
-# pdays special case: NA means "never previously contacted" (originally -1 in the
-# raw data, encoded as NA by ucimlrepo). Derive a binary contacted_before flag
-# and set pdays NA -> 0 before the split so impute_splits() sees no NA there.
+# Types from variables.csv: Integer -> integer,
+# Categorical/Binary/Date -> factor.
+# pdays special case: NA means "never previously contacted" (originally
+# -1 in the raw data, encoded as NA by ucimlrepo). Derive a binary
+# contacted_before flag and set pdays NA -> 0 before the split so
+# impute_splits() sees no NA there.
 # Target `y`: "yes" maps to 1.
 message("\n=== UCI Portuguese Bank Marketing ===")
 load_ucimlrepo("data/raw/uci-portuguese-bank-marketing") |>
-  cast_types_from_variables("data/raw/uci-portuguese-bank-marketing/variables.csv") |>
+  cast_types_from_variables(
+    "data/raw/uci-portuguese-bank-marketing/variables.csv"
+  ) |>
   mutate(
     contacted_before = as.integer(!is.na(pdays)),
     pdays            = if_else(is.na(pdays), 0L, pdays)
@@ -87,13 +95,13 @@ load_ucimlrepo("data/raw/uci-taiwan-credit-card") |>
 # Categorical (integer-coded): all other features per codetable.txt.
 # No missing values.
 sg_types <- c(
-  laufkont = "factor", laufzeit = "integer",  moral    = "factor",
-  verw     = "factor", hoehe    = "integer",  sparkont = "factor",
-  beszeit  = "factor", rate     = "factor",   famges   = "factor",
-  buerge   = "factor", wohnzeit = "factor",   verm     = "factor",
-  alter    = "integer", weitkred = "factor",  wohn     = "factor",
-  bishkred = "factor", beruf    = "factor",   pers     = "factor",
-  telef    = "factor", gastarb  = "factor"
+  laufkont = "factor", laufzeit = "integer", moral = "factor",
+  verw = "factor", hoehe = "integer", sparkont = "factor",
+  beszeit = "factor", rate = "factor", famges = "factor",
+  buerge = "factor", wohnzeit = "factor", verm = "factor",
+  alter = "integer", weitkred = "factor", wohn = "factor",
+  bishkred = "factor", beruf = "factor", pers = "factor",
+  telef = "factor", gastarb = "factor"
 )
 
 message("\n=== UCI South German Credit ===")
@@ -109,7 +117,9 @@ load_south_german("data/raw/uci-south-german-credit/SouthGermanCredit.asc") |>
 # No missing values. Target `A15`: 0/1 integer.
 message("\n=== UCI Australian Credit Approval ===")
 load_ucimlrepo("data/raw/uci-australian-credit-approval") |>
-  cast_types_from_variables("data/raw/uci-australian-credit-approval/variables.csv") |>
+  cast_types_from_variables(
+    "data/raw/uci-australian-credit-approval/variables.csv"
+  ) |>
   diagnose("A15") |>
   standardize_columns("A15") |>
   split() |>

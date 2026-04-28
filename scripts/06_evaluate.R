@@ -9,30 +9,40 @@ suppressPackageStartupMessages({
 source(here("src/calibrate.R"))
 source(here("src/evaluate.R"))
 
-test_files <- list.files(here("predictions", "test"), pattern = "\\.parquet$", full.names = TRUE, recursive = TRUE)
+test_files <- list.files(
+  here("predictions", "test"),
+  pattern = "\\.parquet$", full.names = TRUE, recursive = TRUE
+)
 
 results <- map_dfr(test_files, function(path) {
-  category   <- basename(dirname(path))
-  dataset    <- basename(dirname(dirname(path)))
-  pred_key   <- tools::file_path_sans_ext(basename(path))
-  parts      <- strsplit(pred_key, "_")[[1]]
+  category <- basename(dirname(path))
+  dataset <- basename(dirname(dirname(path)))
+  pred_key <- tools::file_path_sans_ext(basename(path))
+  parts <- strsplit(pred_key, "_")[[1]]
 
   classifier_idx <- which(parts %in% c("logreg", "rf", "lgbm"))
-  classifier     <- parts[classifier_idx]
-  resampling     <- paste(parts[seq(classifier_idx + 1, length(parts))], collapse = "_")
+  classifier <- parts[classifier_idx]
+  resampling <- paste(
+    parts[seq(classifier_idx + 1, length(parts))], collapse = "_"
+  )
 
   preds <- read_parquet(path)
 
-  cal_path <- function(suffix) here("models", "calibrators", dataset, category, paste0(pred_key, "_", suffix, ".rds"))
+  cal_path <- function(suffix) {
+    here(
+      "models", "calibrators", dataset, category,
+      paste0(pred_key, "_", suffix, ".rds")
+    )
+  }
   calibration_variants <- list(
     none     = NULL,
-    platt    = tryCatch(readRDS(cal_path("platt")),    error = function(e) NULL),
+    platt    = tryCatch(readRDS(cal_path("platt")), error = function(e) NULL),
     isotonic = tryCatch(readRDS(cal_path("isotonic")), error = function(e) NULL)
   )
 
   map_dfr(names(calibration_variants), function(cal_name) {
     calibrated <- apply_calibrator(preds, calibration_variants[[cal_name]])
-    metrics    <- compute_metrics(calibrated)
+    metrics <- compute_metrics(calibrated)
 
     bind_cols(
       tibble(
