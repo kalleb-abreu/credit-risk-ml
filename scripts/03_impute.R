@@ -2,7 +2,7 @@ suppressPackageStartupMessages(library(here))
 source(here::here("src/preprocess.R"))
 source(here::here("src/config.R"))
 
-cfg      <- load_config()
+cfg <- load_config()
 datasets <- cfg$datasets
 
 for (name in datasets) {
