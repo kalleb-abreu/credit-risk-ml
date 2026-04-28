@@ -19,7 +19,8 @@ resampling_category <- function(resampling) {
     tomek       = "undersample",
     nearmiss    = "undersample",
     smote_tomek = "hybrid",
-    smote_enn   = "hybrid"
+    smote_enn   = "hybrid",
+    stop("Unknown resampling condition: ", resampling)
   )
 }
 
