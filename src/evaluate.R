@@ -21,7 +21,11 @@ compute_metrics <- function(preds) {
   y_int <- as.integer(as.character(preds$y))
 
   p1 <- pmin(pmax(preds$.pred_1, 1e-6), 1 - 1e-6)
+  # val.prob.ci.2 calls par() internally even with pl=FALSE, which auto-opens
+  # Rplots.pdf in non-interactive sessions. Redirect to null device to suppress.
+  grDevices::pdf(nullfile())
   ece <- unname(val.prob.ci.2(p1, y_int, pl = FALSE)$stats[["Eavg"]])
+  grDevices::dev.off()
 
   tibble(
     pr_auc = pr_auc(
