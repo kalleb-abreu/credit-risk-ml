@@ -6,17 +6,17 @@ suppressPackageStartupMessages({
   library(probably)
 })
 
-DATASET_ORDER <- c(
+dataset_order <- c(
   "ulb", "ieee", "bank_marketing", "taiwan", "south_german", "australian"
 )
 
-RESAMPLING_ORDER <- c(
+resampling_order <- c(
   "none", "upsample", "smote", "adasyn",
   "downsample", "tomek", "nearmiss",
   "smote_tomek", "smote_enn"
 )
 
-CALIBRATION_ORDER <- c("none", "platt", "isotonic")
+calibration_order <- c("none", "platt", "isotonic")
 
 #' Heatmap of a discrimination metric: resampling × dataset, uncalibrated only
 #'
@@ -27,8 +27,8 @@ plot_heatmap <- function(metrics, metric, title) {
   metrics |>
     filter(calibration == "none") |>
     mutate(
-      dataset    = factor(dataset,    levels = DATASET_ORDER),
-      resampling = factor(resampling, levels = RESAMPLING_ORDER)
+      dataset    = factor(dataset, levels = dataset_order),
+      resampling = factor(resampling, levels = resampling_order)
     ) |>
     ggplot(aes(x = dataset, y = resampling, fill = .data[[metric]])) +
     geom_tile(color = "white") +
@@ -39,7 +39,8 @@ plot_heatmap <- function(metrics, metric, title) {
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
 }
 
-#' Heatmap of a calibration metric: calibration method × resampling, averaged over datasets
+#' Heatmap of a calibration metric: calibration method x resampling,
+#' averaged over datasets
 #'
 #' @param metrics   The test_metrics tibble.
 #' @param metric    Column name (string) to plot.
@@ -47,8 +48,8 @@ plot_heatmap <- function(metrics, metric, title) {
 plot_calibration_heatmap <- function(metrics, metric, title) {
   metrics |>
     mutate(
-      resampling  = factor(resampling,  levels = RESAMPLING_ORDER),
-      calibration = factor(calibration, levels = CALIBRATION_ORDER)
+      resampling  = factor(resampling, levels = resampling_order),
+      calibration = factor(calibration, levels = calibration_order)
     ) |>
     group_by(resampling, calibration, classifier) |>
     summarise(value = mean(.data[[metric]], na.rm = TRUE), .groups = "drop") |>
@@ -60,9 +61,11 @@ plot_calibration_heatmap <- function(metrics, metric, title) {
     theme_minimal()
 }
 
-#' Reliability diagram overlaying uncalibrated, Platt, and isotonic for one config
+#' Reliability diagram overlaying uncalibrated, Platt, and isotonic for
+#' one config
 #'
-#' @param preds_list  Named list ("none", "platt", "isotonic"), each a tibble(y, .pred_1).
+#' @param preds_list  Named list ("none", "platt", "isotonic"), each a
+#'   tibble(y, .pred_1).
 #' @param title       Plot title.
 #' @param n_bins      Number of equal-width bins (default 10).
 plot_reliability_triple <- function(preds_list, title, n_bins = 10) {
@@ -71,8 +74,10 @@ plot_reliability_triple <- function(preds_list, title, n_bins = 10) {
   bins <- map_dfr(names(preds_list), function(cal) {
     p <- preds_list[[cal]] |>
       mutate(
-        y_int = as.integer(as.character(factor(as.character(y), levels = c("0", "1")))),
-        bin   = cut(.pred_1, breaks = breaks, include.lowest = TRUE)
+        y_int = as.integer(
+          as.character(factor(as.character(y), levels = c("0", "1")))
+        ),
+        bin = cut(.pred_1, breaks = breaks, include.lowest = TRUE)
       )
     p |>
       group_by(bin) |>
@@ -85,10 +90,12 @@ plot_reliability_triple <- function(preds_list, title, n_bins = 10) {
       filter(n > 0) |>
       mutate(calibration = cal)
   }) |>
-    mutate(calibration = factor(calibration, levels = CALIBRATION_ORDER))
+    mutate(calibration = factor(calibration, levels = calibration_order))
 
   ggplot(bins, aes(x = mean_pred, y = mean_actual, color = calibration)) +
-    geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray60") +
+    geom_abline(
+      slope = 1, intercept = 0, linetype = "dashed", color = "gray60"
+    ) +
     geom_line() +
     geom_point(aes(size = n)) +
     scale_color_manual(
@@ -101,7 +108,8 @@ plot_reliability_triple <- function(preds_list, title, n_bins = 10) {
       y = "Observed fraction positive",
       color = "Calibration"
     ) +
-    xlim(0, 1) + ylim(0, 1) +
+    xlim(0, 1) +
+    ylim(0, 1) +
     theme_minimal()
 }
 
@@ -112,12 +120,16 @@ plot_reliability_triple <- function(preds_list, title, n_bins = 10) {
 plot_reliability <- function(preds, title) {
   preds <- preds |>
     mutate(y = factor(as.character(y), levels = c("0", "1")))
-  cal_plot_breaks(preds, truth = y, estimate = .pred_1, event_level = "second") +
+  cal_plot_breaks(
+    preds,
+    truth = y, estimate = .pred_1, event_level = "second"
+  ) +
     labs(title = title) +
     theme_minimal()
 }
 
-#' Main results table: mean PR-AUC and Brier Score by resampling × classifier (uncalibrated)
+#' Main results table: mean PR-AUC and Brier Score by resampling x
+#' classifier (uncalibrated)
 #'
 #' @param metrics  The test_metrics tibble.
 #' @return Tibble averaged over datasets, sorted by resampling then classifier.
@@ -126,12 +138,12 @@ main_results_table <- function(metrics) {
     filter(calibration == "none") |>
     group_by(resampling, classifier) |>
     summarise(
-      mean_pr_auc      = mean(pr_auc,      na.rm = TRUE),
+      mean_pr_auc = mean(pr_auc, na.rm = TRUE),
       mean_brier_score = mean(brier_score, na.rm = TRUE),
       .groups = "drop"
     ) |>
     mutate(
-      resampling = factor(resampling, levels = RESAMPLING_ORDER),
+      resampling = factor(resampling, levels = resampling_order),
       classifier = factor(classifier, levels = c("logreg", "rf", "lgbm"))
     ) |>
     arrange(resampling, classifier)

@@ -40,7 +40,11 @@ spec_rf <- function(cfg = NULL) {
 }
 
 spec_lgbm <- function(cfg = NULL) {
-  m <- if (!is.null(cfg)) cfg$models$lgbm else list(trees = 300, learn_rate = 0.05, num_leaves = 31)
+  m <- if (!is.null(cfg)) {
+    cfg$models$lgbm
+  } else {
+    list(trees = 300, learn_rate = 0.05, num_leaves = 31)
+  }
   boost_tree(trees = m$trees, learn_rate = m$learn_rate) |>
     set_engine("lightgbm", num_leaves = m$num_leaves) |>
     set_mode("classification")
@@ -55,7 +59,10 @@ base_recipe <- function(train, cfg = NULL) {
   threshold <- if (!is.null(cfg)) cfg$recipe$step_other_threshold else 0.01
   recipe(y ~ ., data = train) |>
     step_nzv(all_predictors()) |>
-    step_other(all_nominal_predictors(), threshold = threshold, other = ".other") |>
+    step_other(
+      all_nominal_predictors(),
+      threshold = threshold, other = ".other"
+    ) |>
     step_dummy(all_nominal_predictors()) |>
     step_normalize(all_numeric_predictors())
 }
@@ -66,25 +73,52 @@ base_recipe <- function(train, cfg = NULL) {
 #' @param resampling  One of the 9 condition keys (see pipeline.md).
 build_recipe <- function(train, resampling, cfg = NULL) {
   rec <- base_recipe(train, cfg)
-  p   <- if (!is.null(cfg)) cfg$resampling_params else list(
-    upsample   = list(over_ratio  = 0.5),
-    smote      = list(over_ratio  = 0.5, neighbors = 5),
-    adasyn     = list(over_ratio  = 0.5, neighbors = 5),
-    downsample = list(under_ratio = 1.0),
-    nearmiss   = list(under_ratio = 1.0, neighbors = 3),
-    enn        = list(neighbors   = 5)
-  )
+  p <- if (!is.null(cfg)) {
+    cfg$resampling_params
+  } else {
+    list(
+      upsample   = list(over_ratio = 0.5),
+      smote      = list(over_ratio = 0.5, neighbors = 5),
+      adasyn     = list(over_ratio = 0.5, neighbors = 5),
+      downsample = list(under_ratio = 1.0),
+      nearmiss   = list(under_ratio = 1.0, neighbors = 3),
+      enn        = list(neighbors = 5)
+    )
+  }
 
   switch(resampling,
-    none        = rec,
-    upsample    = rec |> step_upsample(y, over_ratio = p$upsample$over_ratio),
-    smote       = rec |> step_smote(y, over_ratio = p$smote$over_ratio, neighbors = p$smote$neighbors),
-    adasyn      = rec |> step_adasyn(y, over_ratio = p$adasyn$over_ratio, neighbors = p$adasyn$neighbors),
-    downsample  = rec |> step_downsample(y, under_ratio = p$downsample$under_ratio),
-    tomek       = rec |> step_tomek(y),
-    nearmiss    = rec |> step_nearmiss(y, under_ratio = p$nearmiss$under_ratio, neighbors = p$nearmiss$neighbors),
-    smote_tomek = rec |> step_smote(y, over_ratio = p$smote$over_ratio, neighbors = p$smote$neighbors) |> step_tomek(y),
-    smote_enn   = rec |> step_smote(y, over_ratio = p$smote$over_ratio, neighbors = p$smote$neighbors) |> step_enn(y, neighbors = p$enn$neighbors),
+    none = rec,
+    upsample = rec |> step_upsample(y, over_ratio = p$upsample$over_ratio),
+    smote = rec |>
+      step_smote(
+        y,
+        over_ratio = p$smote$over_ratio, neighbors = p$smote$neighbors
+      ),
+    adasyn = rec |>
+      step_adasyn(
+        y,
+        over_ratio = p$adasyn$over_ratio, neighbors = p$adasyn$neighbors
+      ),
+    downsample = rec |>
+      step_downsample(y, under_ratio = p$downsample$under_ratio),
+    tomek = rec |> step_tomek(y),
+    nearmiss = rec |>
+      step_nearmiss(
+        y,
+        under_ratio = p$nearmiss$under_ratio, neighbors = p$nearmiss$neighbors
+      ),
+    smote_tomek = rec |>
+      step_smote(
+        y,
+        over_ratio = p$smote$over_ratio, neighbors = p$smote$neighbors
+      ) |>
+      step_tomek(y),
+    smote_enn = rec |>
+      step_smote(
+        y,
+        over_ratio = p$smote$over_ratio, neighbors = p$smote$neighbors
+      ) |>
+      step_enn(y, neighbors = p$enn$neighbors),
     stop("Unknown resampling condition: ", resampling)
   )
 }
@@ -109,7 +143,9 @@ step_enn <- function(recipe, var, neighbors = 5, role = NA, skip = TRUE,
   )
 }
 
-new_step_enn <- function(var, neighbors, role, skip, id, trained = FALSE, retain = NULL) {
+new_step_enn <- function(
+  var, neighbors, role, skip, id, trained = FALSE, retain = NULL
+) {
   recipes::step(
     subclass  = "enn",
     var       = var,
@@ -122,20 +158,22 @@ new_step_enn <- function(var, neighbors, role, skip, id, trained = FALSE, retain
   )
 }
 
-prep.step_enn <- function(x, training, info = NULL, ...) {
-  y_col    <- x$var
-  k        <- x$neighbors
-  y_vals   <- as.integer(as.character(training[[y_col]]))
-  x_mat    <- as.matrix(dplyr::select(training, -dplyr::all_of(y_col)))
-  nn_idx   <- FNN::get.knn(x_mat, k = k)$nn.index
-  votes    <- matrix(y_vals[nn_idx], nrow = nrow(x_mat))
+prep.step_enn <- function(x, training, info = NULL, ...) { # nolint: object_name_linter
+  y_col <- x$var
+  k <- x$neighbors
+  y_vals <- as.integer(as.character(training[[y_col]]))
+  x_mat <- as.matrix(dplyr::select(training, -dplyr::all_of(y_col)))
+  nn_idx <- FNN::get.knn(x_mat, k = k)$nn.index
+  votes <- matrix(y_vals[nn_idx], nrow = nrow(x_mat))
   majority <- as.integer(rowSums(votes) > k / 2)
-  new_step_enn(var = x$var, neighbors = x$neighbors, role = x$role,
-               skip = x$skip, id = x$id, trained = TRUE,
-               retain = training[majority == y_vals, , drop = FALSE])
+  new_step_enn(
+    var = x$var, neighbors = x$neighbors, role = x$role,
+    skip = x$skip, id = x$id, trained = TRUE,
+    retain = training[majority == y_vals, , drop = FALSE]
+  )
 }
 
-bake.step_enn <- function(object, new_data, ...) {
+bake.step_enn <- function(object, new_data, ...) { # nolint: object_name_linter
   if (is.null(new_data)) object$retain else new_data
 }
 
@@ -153,12 +191,19 @@ print.step_enn <- function(x, ...) {
 #'
 #' @param train  Training partition tibble with `y` as factor.
 select_lambda <- function(train, cfg = NULL) {
-  m       <- if (!is.null(cfg)) cfg$models$logreg else list(mixture = 0.5, cv_folds = 5)
+  m <- if (!is.null(cfg)) {
+    cfg$models$logreg
+  } else {
+    list(mixture = 0.5, cv_folds = 5)
+  }
   prepped <- base_recipe(train, cfg) |> prep(training = train)
-  baked   <- bake(prepped, new_data = NULL)
+  baked <- bake(prepped, new_data = NULL)
   x <- as.matrix(dplyr::select(baked, -y))
   y <- as.integer(as.character(baked$y))
-  cv <- glmnet::cv.glmnet(x, y, alpha = m$mixture, nfolds = m$cv_folds, family = "binomial")
+  cv <- glmnet::cv.glmnet(
+    x, y,
+    alpha = m$mixture, nfolds = m$cv_folds, family = "binomial"
+  )
   cv$lambda.1se
 }
 
@@ -169,12 +214,14 @@ select_lambda <- function(train, cfg = NULL) {
 #' @param splits      Named list with `train`, `calibration`, `test` tibbles.
 #' @param classifier  One of "logreg", "rf", "lgbm".
 #' @param resampling  One of the 9 condition keys.
-#' @param penalty     Resolved glmnet lambda (required when classifier = "logreg").
+#' @param penalty  Resolved glmnet lambda (required when classifier = "logreg").
 #' @return Named list: `workflow`, `pred_calibration`, `pred_test`.
-fit_condition <- function(splits, classifier, resampling, penalty = NULL, cfg = NULL) {
+fit_condition <- function(
+  splits, classifier, resampling, penalty = NULL, cfg = NULL
+) {
   train <- splits$train |> mutate(y = factor(y, levels = c(0, 1)))
-  cal   <- splits$calibration |> mutate(y = factor(y, levels = c(0, 1)))
-  test  <- splits$test  |> mutate(y = factor(y, levels = c(0, 1)))
+  cal <- splits$calibration |> mutate(y = factor(y, levels = c(0, 1)))
+  test <- splits$test |> mutate(y = factor(y, levels = c(0, 1)))
 
   spec <- if (classifier == "logreg") {
     if (is.null(penalty)) stop("penalty required for logreg")

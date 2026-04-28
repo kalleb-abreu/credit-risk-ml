@@ -20,13 +20,13 @@ cast_types_from_variables <- function(df, path) {
     filter(role == "Feature")
 
   for (i in seq_len(nrow(vars))) {
-    col  <- vars$name[i]
+    col <- vars$name[i]
     type <- vars$type[i]
     if (!col %in% names(df)) next
     df[[col]] <- switch(type,
       Integer    = as.integer(df[[col]]),
       Continuous = as.double(df[[col]]),
-      factor(df[[col]])          # Categorical, Binary, Date
+      factor(df[[col]]) # Categorical, Binary, Date
     )
   }
   df
@@ -38,7 +38,8 @@ cast_types_from_variables <- function(df, path) {
 #' Columns not present in `df` are silently skipped.
 #'
 #' @param df        A tibble.
-#' @param col_types Named character vector: c(col_name = "integer"|"double"|"factor").
+#' @param col_types Named character vector:
+#'   c(col_name = "integer"|"double"|"factor").
 cast_types <- function(df, col_types) {
   for (col in names(col_types)) {
     if (!col %in% names(df)) next
@@ -61,10 +62,12 @@ cast_types <- function(df, col_types) {
 #' @param splits Named list returned by `stratified_split()`.
 impute_splits <- function(splits) {
   train <- splits$train
-  feat  <- setdiff(names(train), "y")
+  feat <- setdiff(names(train), "y")
 
   num_cols <- feat[sapply(train[feat], is.numeric)]
-  cat_cols <- feat[sapply(train[feat], function(x) is.factor(x) || is.character(x))]
+  cat_cols <- feat[sapply(
+    train[feat], function(x) is.factor(x) || is.character(x)
+  )]
 
   # Compute medians from training data only
   medians <- sapply(train[num_cols], median, na.rm = TRUE)
@@ -120,14 +123,15 @@ standardize_columns <- function(df, target_col, positive_class = NULL) {
 #' @param cal_prop   Proportion for the calibration partition (default 0.20).
 #' @param seed       Random seed (default 42).
 #' @return Named list with elements `train`, `calibration`, `test`.
-stratified_split <- function(df, train_prop = 0.60, cal_prop = 0.20, seed = 42) {
+stratified_split <- function(df, train_prop = 0.60, cal_prop = 0.20,
+                             seed = 42) {
   set.seed(seed)
 
   split_idx <- function(idx) {
-    n       <- length(idx)
-    s       <- sample(idx)
+    n <- length(idx)
+    s <- sample(idx)
     n_train <- round(n * train_prop)
-    n_cal   <- round(n * cal_prop)
+    n_cal <- round(n * cal_prop)
     list(
       train       = s[seq_len(n_train)],
       calibration = s[seq(n_train + 1, n_train + n_cal)],
@@ -139,33 +143,37 @@ stratified_split <- function(df, train_prop = 0.60, cal_prop = 0.20, seed = 42) 
   s1 <- split_idx(which(df$y == 1))
 
   list(
-    train       = df[sort(c(s0$train,       s1$train)),       ],
+    train       = df[sort(c(s0$train, s1$train)), ],
     calibration = df[sort(c(s0$calibration, s1$calibration)), ],
-    test        = df[sort(c(s0$test,        s1$test)),        ]
+    test        = df[sort(c(s0$test, s1$test)), ]
   )
 }
 
 #' Write train / calibration / test splits to Parquet files
 #'
-#' @param splits Named list returned by `stratified_split()` or `impute_splits()`.
+#' @param splits Named list from `stratified_split()` or `impute_splits()`.
 #' @param name   Dataset identifier used in the output filenames.
-#' @param dir    Output directory relative to project root (default `"data/interim"`).
+#' @param dir    Output directory relative to project root
+#'   (default `"data/interim"`).
 save_splits <- function(splits, name, dir = "data/interim") {
   out_dir <- here::here(dir, name)
   dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
   for (partition in names(splits)) {
     path <- file.path(out_dir, paste0(partition, ".parquet"))
     arrow::write_parquet(splits[[partition]], path)
-    message("Saved ", path,
-            " (", nrow(splits[[partition]]), " rows | y=1: ",
-            sum(splits[[partition]]$y), ")")
+    message(
+      "Saved ", path,
+      " (", nrow(splits[[partition]]), " rows | y=1: ",
+      sum(splits[[partition]]$y), ")"
+    )
   }
 }
 
 #' Load train / calibration / test splits from Parquet files
 #'
 #' @param name Dataset identifier used in the filenames.
-#' @param dir  Directory to read from relative to project root (default `"data/interim"`).
+#' @param dir  Directory to read from relative to project root
+#'   (default `"data/interim"`).
 #' @return Named list with elements `train`, `calibration`, `test`.
 load_splits <- function(name, dir = "data/interim") {
   partitions <- c("train", "calibration", "test")
